@@ -17,6 +17,8 @@ export function App() {
   const [filterType, setFilterType] = useState('all');
   const [filterLocation, setFilterLocation] = useState('all');
   const [search, setSearch] = useState('');
+  const [sortBy, setSortBy] = useState('urgency');
+  const [showImages, setShowImages] = useState(true);
 
   // Scroll to top when navigating to detail or addPlant
   useEffect(() => {
@@ -25,14 +27,22 @@ export function App() {
     }
   }, [view]);
 
-  if (auth.isInitializing) {
-    return (
-      <div class="login-screen">
-        <h1>🌱 Plant Tracker</h1>
-        <p>Signing in...</p>
-      </div>
-    );
-  }
+  // Push browser history so Android back button navigates within the app
+  useEffect(() => {
+    if (view !== 'dashboard') {
+      history.pushState({ view }, '');
+    }
+  }, [view]);
+
+  useEffect(() => {
+    const onPopState = () => {
+      setSelectedPlant(null);
+      setPropagateFrom(null);
+      setView('dashboard');
+    };
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, []);
 
   if (!auth.isSignedIn) {
     return (
@@ -87,7 +97,7 @@ export function App() {
   if (view === 'addPlant') {
     return (
       <>
-        <Header user={auth.user} onSignOut={auth.signOut} syncStatus={data.syncStatus} />
+        <Header user={auth.user} onSignOut={auth.signOut} syncStatus={data.syncStatus} showImages={showImages} onToggleImages={() => setShowImages(!showImages)} />
         <AddPlantForm
           data={data}
           onSubmit={handleAddPlantSubmit}
@@ -102,7 +112,7 @@ export function App() {
   if (view === 'detail' && selectedPlant) {
     return (
       <>
-        <Header user={auth.user} onSignOut={auth.signOut} syncStatus={data.syncStatus} />
+        <Header user={auth.user} onSignOut={auth.signOut} syncStatus={data.syncStatus} showImages={showImages} onToggleImages={() => setShowImages(!showImages)} />
         <PlantDetail
           plant={selectedPlant}
           data={data}
@@ -110,6 +120,7 @@ export function App() {
           onAction={(outcome) => data.logEvent(selectedPlant.id, selectedPlant._dueEventType, outcome)}
           onRemove={handleRemovePlant}
           onPropagate={handlePropagate}
+          showImages={showImages}
         />
       </>
     );
@@ -117,7 +128,7 @@ export function App() {
 
   return (
     <>
-      <Header user={auth.user} onSignOut={auth.signOut} syncStatus={data.syncStatus} />
+      <Header user={auth.user} onSignOut={auth.signOut} syncStatus={data.syncStatus} showImages={showImages} onToggleImages={() => setShowImages(!showImages)} />
       <Dashboard
         data={data}
         caretaker={auth.caretaker}
@@ -130,6 +141,9 @@ export function App() {
         onFilterTypeChange={setFilterType}
         onFilterLocationChange={setFilterLocation}
         onSearchChange={setSearch}
+        sortBy={sortBy}
+        onSortChange={setSortBy}
+        showImages={showImages}
       />
     </>
   );

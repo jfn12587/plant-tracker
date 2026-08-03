@@ -2,7 +2,7 @@ import { useState } from 'preact/hooks';
 import { getPhotoUrl } from '../services/drive.js';
 import { PhotoCapture } from './PhotoCapture.jsx';
 
-export function PlantDetail({ plant, data, onBack, onAction, onRemove, onPropagate }) {
+export function PlantDetail({ plant, data, onBack, onAction, onRemove, onPropagate, showImages }) {
   const [showConfirmRemove, setShowConfirmRemove] = useState(false);
   const [editingSchedule, setEditingSchedule] = useState(null);
   const [editCadence, setEditCadence] = useState('');

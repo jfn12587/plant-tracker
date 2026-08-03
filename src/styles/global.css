@@ -27,6 +27,7 @@ body {
   background: var(--gray-light);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
 }
 
 /* Login */
@@ -78,6 +79,16 @@ body {
   width: 32px;
   height: 32px;
   border-radius: 50%;
+}
+
+.btn-toggle-images {
+  font-size: 1.1rem;
+  padding: 4px 8px;
+  opacity: 0.5;
+}
+
+.btn-toggle-images.active {
+  opacity: 1;
 }
 
 .sync-badge {
@@ -210,11 +221,14 @@ body {
 
 .filter-bar select {
   flex: 1;
+  min-width: 0;
   padding: 8px 12px;
   border: 1px solid #ddd;
   border-radius: var(--radius);
   font-size: 0.9rem;
   background: var(--white);
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Dashboard */
@@ -278,6 +292,15 @@ body {
 .plant-card.urgency-none {
   border-left-color: var(--gray);
   opacity: 0.8;
+}
+
+.plant-card-thumb {
+  width: 44px;
+  height: 44px;
+  border-radius: 6px;
+  object-fit: cover;
+  flex-shrink: 0;
+  margin-right: 10px;
 }
 
 .plant-card-info {

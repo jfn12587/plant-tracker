@@ -1,4 +1,6 @@
-export function PlantCard({ entry, onSelect, onAction, lastWatered }) {
+import { getPhotoUrl } from '../services/drive.js';
+
+export function PlantCard({ entry, onSelect, onAction, lastWatered, showImages }) {
   const { plant, schedules, maxOverdue, _dueEventType } = entry;
 
   const urgencyClass =
@@ -25,8 +27,11 @@ export function PlantCard({ entry, onSelect, onAction, lastWatered }) {
 
   const hasSchedule = schedules && schedules.length > 0;
 
+  const thumbUrl = showImages && plant.photo ? getPhotoUrl(plant.photo) : null;
+
   return (
     <div class={`plant-card ${urgencyClass}`} onClick={onSelect}>
+      {thumbUrl && <img src={thumbUrl} alt="" class="plant-card-thumb" />}
       <div class="plant-card-info">
         <div class="plant-card-name">{plant.name}</div>
         <div class="plant-card-meta">

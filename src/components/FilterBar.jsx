@@ -3,8 +3,10 @@ export function FilterBar({
   locations,
   filterType,
   filterLocation,
+  sortBy,
   onTypeChange,
   onLocationChange,
+  onSortChange,
 }) {
   return (
     <div class="filter-bar">
@@ -23,6 +25,11 @@ export function FilterBar({
             {l}
           </option>
         ))}
+      </select>
+      <select value={sortBy} onChange={(e) => onSortChange(e.target.value)}>
+        <option value="urgency">Needs Attention</option>
+        <option value="name">Plant Name</option>
+        <option value="location">Location</option>
       </select>
     </div>
   );

@@ -24,11 +24,28 @@ export async function uploadPhoto(accessToken, file, plantName) {
   );
 
   if (!res.ok) {
-    throw new Error(`Drive upload failed: ${res.status}`);
+    const errText = await res.text();
+    console.error('Drive upload error:', res.status, errText);
+    throw new Error(`Drive upload failed: ${res.status} - ${errText}`);
   }
 
   const json = await res.json();
-  return json.id;
+  const fileId = json.id;
+
+  // Make the file publicly viewable so thumbnail URLs work
+  await fetch(
+    `https://www.googleapis.com/drive/v3/files/${fileId}/permissions`,
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ role: 'reader', type: 'anyone' }),
+    }
+  );
+
+  return fileId;
 }
 
 export function getPhotoUrl(fileId) {
