@@ -2,7 +2,7 @@
   "name": "Plant Tracker",
   "short_name": "Plants",
   "description": "Track plant care schedules and log events",
-  "start_url": "/",
+  "start_url": "/plant-tracker/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#5CB947",
