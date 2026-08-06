@@ -316,6 +316,74 @@ export function useSheetsData(accessToken) {
     [accessToken, raw]
   );
 
+  const deleteEvent = useCallback(
+    async (plantId, plantEventIndex) => {
+      if (!accessToken || !raw) return;
+      setSyncStatus('syncing');
+      try {
+        // Find the event's index in the full events array
+        const plantEvents = raw.events.filter((e) => e.plantId === plantId);
+        const targetEvent = plantEvents[plantEventIndex];
+        if (!targetEvent) return;
+
+        const globalIndex = raw.events.indexOf(targetEvent);
+        if (globalIndex === -1) return;
+
+        const sheetMeta = await getSheetMetadata(accessToken);
+        const eventsTabId = sheetMeta['Events'];
+        // Row index in sheet is globalIndex + 1 (to skip header)
+        await deleteRow(accessToken, eventsTabId, globalIndex + 1);
+
+        setRaw((prev) => ({
+          ...prev,
+          events: prev.events.filter((_, i) => i !== globalIndex),
+        }));
+        setSyncStatus('synced');
+      } catch (err) {
+        console.error('Failed to delete event:', err);
+        setSyncStatus('error');
+      }
+    },
+    [accessToken, raw]
+  );
+
+  const updateEvent = useCallback(
+    async (plantId, plantEventIndex, updates) => {
+      if (!accessToken || !raw) return;
+      setSyncStatus('syncing');
+      try {
+        const plantEvents = raw.events.filter((e) => e.plantId === plantId);
+        const targetEvent = plantEvents[plantEventIndex];
+        if (!targetEvent) return;
+
+        const globalIndex = raw.events.indexOf(targetEvent);
+        if (globalIndex === -1) return;
+
+        const updated = { ...targetEvent, ...updates };
+        const sheetRow = globalIndex + 2; // +1 for header, +1 for 1-indexed
+        const range = `Events!A${sheetRow}:D${sheetRow}`;
+        await updateRow(accessToken, range, [
+          updated.plantId,
+          updated.timestamp,
+          updated.eventType,
+          updated.outcome,
+        ]);
+
+        setRaw((prev) => ({
+          ...prev,
+          events: prev.events.map((e, i) =>
+            i === globalIndex ? { ...e, ...updates } : e
+          ),
+        }));
+        setSyncStatus('synced');
+      } catch (err) {
+        console.error('Failed to update event:', err);
+        setSyncStatus('error');
+      }
+    },
+    [accessToken, raw]
+  );
+
   const computed = raw
     ? {
         ...raw,
@@ -339,6 +407,8 @@ export function useSheetsData(accessToken) {
     removeSchedule,
     uploadPlantPhoto,
     updatePlantPhoto,
+    deleteEvent,
+    updateEvent,
     isLoading: !raw,
   };
 }

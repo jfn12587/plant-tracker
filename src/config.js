@@ -8,3 +8,13 @@ export const CONFIG = {
     'drflaherty89@gmail.com': 'Deanna',
   },
 };
+
+const CLIENT_SECRET_KEY = 'vera-pwa-client-secret';
+
+export function getClientSecret() {
+  return localStorage.getItem(CLIENT_SECRET_KEY) || null;
+}
+
+export function setClientSecret(secret) {
+  localStorage.setItem(CLIENT_SECRET_KEY, secret);
+}

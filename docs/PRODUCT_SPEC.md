@@ -17,11 +17,22 @@ The core value proposition is answering one question every day: **"Which plants 
 
 ### Authentication and Identity
 
-- Users authenticate via Google Sign-In (Google Identity Services OAuth2 token client)
+- Users authenticate via Google Sign-In (Google Identity Services OAuth2 authorization code flow)
 - OAuth scopes: `openid email profile https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.file`
 - A static **caretaker map** in `src/config.js` resolves Google email addresses to display names
 - If an unrecognized email signs in, the caretaker name falls back to the Google profile display name
 - Plants are assigned a caretaker in the Inventory sheet, enabling per-user filtering in the future
+
+### Login Persistence
+
+- A **refresh token** is stored in `localStorage` under key `vera-pwa-refresh-token` (persistent across sessions)
+- User profile data is stored in `localStorage` under key `vera-pwa-user`
+- Access tokens are kept in memory only (not persisted) and refreshed automatically before expiry
+- On app load, if a refresh token exists, it is exchanged for a fresh access token silently (user sees "Signing in...")
+- If the refresh token is revoked or invalid, it is cleared and the user must re-authenticate manually
+- No automatic OAuth popup on load; the user must explicitly click "Sign in with Google" only on first use
+- Using `localStorage` for the refresh token ensures persistent login that survives app restarts, mobile OS process kills, and browser closures
+- Sessions are effectively permanent until the user explicitly signs out or revokes access
 
 ### Multi-User Model
 
@@ -31,53 +42,114 @@ Both users share a single Google Sheet as the data store. All plants, events, an
 
 ### 3.1 View Plants Needing Attention
 
-**Dashboard view** displays all plants grouped into two sections:
+**Dashboard view** displays plants in three sections (when sorted by urgency):
 - **Needs Attention** — plants with at least one schedule that is due today or overdue (daysOverdue >= 0)
 - **Upcoming** — plants whose next care event is in the future (daysOverdue < 0)
+- **No Schedule** — plants with no care schedule assigned, shown with quick action buttons
 
-Plants are sorted by urgency (most overdue first). Each plant card shows:
+Each plant card shows:
 - Plant name
 - Location tag
-- Most urgent event type and urgency label (e.g., "Watering - 3d overdue")
-- Color-coded left border: red (overdue/never done), yellow (due today), green (upcoming)
+- "Last watered" tag showing how many days since last watering (e.g., "today", "3d ago")
+- Most urgent event type and urgency label (e.g., "Water — 3d overdue")
+- Color-coded left border: red (overdue/never done), yellow (due today), green (upcoming), neutral (unscheduled)
+- Thumbnail photo (when image toggle is active)
+- Quick action buttons: Water, Fertilize, Repot
+- Snooze/Skip buttons (second row, only for scheduled plants)
 
-### 3.2 Take Action on Scheduled Care
+### 3.2 Sort and Filter
 
-From either the Dashboard card or the Plant Detail view, users can take three actions on the most urgent scheduled event:
+The dashboard provides three ways to organize the plant list:
+
+**Sort modes (four options):**
+- **Needs Attention** (default) — groups plants into Needs Attention / Upcoming / No Schedule sections, sorted by urgency within each
+- **Plant Name** — flat alphabetical list of all plants (scheduled and unscheduled together)
+- **Location** — groups all plants by their location, alphabetically within each group
+- **Acquired Date** — flat list sorted by acquired date (newest first); plants without an acquired date appear at the bottom
+
+**Filters:**
+- **Event Type filter** — show only plants with a specific scheduled event type (Water, Fertilize, etc.)
+- **Location filter** — show only plants in a specific location
+- **Search bar** — sticky text input that filters plants by name, location, or species (case-insensitive substring match)
+
+All filter and sort state persists across navigation to detail/add views and back. State is maintained in the App component, not reset on view change.
+
+### 3.3 Image Toggle
+
+A button in the header toggles thumbnail visibility on the dashboard. When active, plant cards display a small photo if available. The detail page always shows the full plant photo regardless of this toggle.
+
+### 3.4 Take Action on Scheduled Care
+
+From either the Dashboard card or the Plant Detail view, users can take actions on scheduled events:
+
+**Quick action buttons (first row, always visible):**
+
+| Action | Button | Effect |
+|--------|--------|--------|
+| **Water** | Water droplet | Logs a "Done" event for Water immediately |
+| **Fertilize** | Leaf | Logs a "Done" event for Fertilize immediately |
+| **Repot** | Potted plant | Logs a "Done" event for Repot immediately |
+
+**Schedule management buttons (second row, scheduled plants only):**
 
 | Action | Button | Effect on Schedule |
 |--------|--------|-------------------|
-| **Done** | Checkmark | Resets the schedule; next due = today + cadence days |
 | **Snoozed** | Clock | Pushes next due to 2 days from now |
 | **Skipped** | Fast-forward | Extends the cycle by one additional cadence period per skip |
 
-Each action appends a row to the Events sheet with: plant name, ISO timestamp, event type, and outcome.
+Each action appends a row to the Events sheet with: plant ID, ISO timestamp, event type, and outcome.
 
-### 3.3 Log Ad-Hoc Events
+### 3.5 Log Ad-Hoc Events
 
 From the Plant Detail view, users can log events that occur outside of any schedule:
 1. Click "+ Log Event"
 2. Select any event type from the dropdown (includes all types from the Event Types sheet)
-3. Click "Log Done" to record a Done event immediately
+3. Optionally select a back-date via the date picker (defaults to current time if omitted)
+4. Click "Log Done" to record a Done event
 
-This supports tracking activities like repotting or pest treatment that may not have a recurring schedule.
+This supports tracking activities like repotting or pest treatment that may not have a recurring schedule, and allows recording events that happened in the past.
 
-### 3.4 View Full Plant Detail
+### 3.6 View Full Plant Detail
 
 Tapping a plant card navigates to the Plant Detail view, which displays:
-- **Photo** — retrieved from Google Drive via thumbnail URL if a file ID exists
+- **Photo** — always shown if available, retrieved from Google Drive via thumbnail URL
 - **Plant name and species**
-- **Metadata grid** — location, caretaker, acquired date, pot description, notes
+- **Edit/Propagate action bar** — buttons to enter edit mode or propagate the plant
+- **Quick action buttons** — Water, Fertilize, Repot at the top of the detail page
+- **Photo capture section** — file input for taking or uploading a new photo
+- **Metadata grid** — location, caretaker, acquired date, pot description, notes (all inline-editable)
 - **Activity section** — all event types recorded for this plant, with last-done date, schedule cadence (if scheduled), and total event count
 - **Care Schedule section** — each active schedule with cadence, urgency status, and action buttons (Done/Snooze/Skip/Edit/Remove)
 - **Species Care Guide** — detailed care instructions from the Species sheet (light, water, humidity, temperature, food, toxicity, pet safety, additional care, common issues)
+- **Remove Plant** — destructive action with confirmation dialog
 
-### 3.5 Add and Remove Plants
+### 3.7 Edit Plant Details
+
+From the Plant Detail view, users can edit plant metadata inline:
+1. Click "Edit" button in the action bar
+2. Name, Location, Caretaker, Pot, and Notes fields become editable inputs
+3. Click "Save" to persist changes or "Cancel" to discard
+4. Changes are written to the full Inventory row via `updatePlant()`
+
+The Acquired Date and Species fields are not editable from this interface.
+
+### 3.8 Propagate Plant
+
+From the Plant Detail view, users can create a new plant derived from the current one:
+1. Click "Propagate" button in the action bar
+2. The Add Plant form opens pre-filled with:
+   - Name: "{original name} Baby"
+   - Same species, caretaker, location, pot, and notes as the parent
+   - Acquired Date: today's date
+3. User can modify any pre-filled fields before saving
+4. On submit, a new plant is created with an auto-generated unique ID
+
+### 3.9 Add and Remove Plants
 
 **Add Plant:**
 1. Tap the floating "+" button on the dashboard
 2. Fill in the form: Name (required), Species (autocomplete from Species sheet), Caretaker (dropdown), Location (autocomplete from existing locations), Acquired Date, Pot, Notes
-3. Submit to append a row to the Inventory sheet
+3. Submit to append a row to the Inventory sheet with an auto-generated unique ID (P001, P002, ...)
 4. Immediately transitions to a schedule setup screen to add one or more care schedules
 
 **Remove Plant:**
@@ -85,7 +157,7 @@ Tapping a plant card navigates to the Plant Detail view, which displays:
 2. Confirm the destructive action in a confirmation dialog
 3. Removes the plant row from Inventory and all associated rows from Schedules
 
-### 3.6 Manage Schedules
+### 3.10 Manage Schedules
 
 From the Plant Detail Care Schedule section:
 
@@ -93,13 +165,30 @@ From the Plant Detail Care Schedule section:
 - **Edit Cadence** — click the edit button on a schedule row, change the number of days, save
 - **Remove Schedule** — click the X button to delete the schedule row from the Schedules sheet
 
-### 3.7 Take and View Photos
+### 3.11 Take and View Photos
 
-- **View:** If a plant has a photo file ID stored in the Inventory sheet, the detail view shows the image via Google Drive thumbnail URL (`https://drive.google.com/thumbnail?id={fileId}&sz=w800`)
-- **Capture/Upload:** The PhotoCapture component provides a file input with `capture="environment"` for mobile camera access. Images are:
+- **View:** If a plant has a photo file ID stored in the Inventory sheet, the detail view always shows the image via Google Drive thumbnail URL. Dashboard cards show thumbnails when the image toggle is active.
+- **Capture/Upload:** The PhotoCapture component provides a file input with `capture="environment"` for mobile camera access. The file picker is hidden when a photo already exists, unless the user is in edit mode (to allow replacing the photo). Images are:
   1. Resized client-side to max 1200px width at 85% JPEG quality
   2. Uploaded to Google Drive via multipart upload
-  3. The returned file ID is written to the Inventory sheet's photo column
+  3. Made publicly viewable via a permissions API call (role: reader, type: anyone)
+  4. The returned file ID is written to the Inventory sheet's Photo column (column G)
+
+### 3.12 Activity History
+
+The Activity section on the Plant Detail page shows a comprehensive history for the plant:
+- Lists every event type that has been recorded for the plant (not just scheduled types)
+- For each event type: last completed date, total event count, and cadence (if scheduled)
+- Provides context for ad-hoc events alongside scheduled ones
+- A "Show All" button expands a full event table showing every individual event (newest first) with:
+  - Timestamp, event type, and outcome columns
+  - Edit button: allows inline editing of event type and outcome
+  - Delete button: removes the event from the Events sheet
+- The table can be collapsed again with "Hide All"
+
+### 3.13 Back Button Support
+
+The app uses `history.pushState` to manage browser history. When navigating from the dashboard to a detail or add-plant view, a history entry is pushed. Pressing the Android hardware back button (or browser back) triggers `popstate`, returning the user to the dashboard instead of closing the app or navigating away.
 
 ## 4. Data Model
 
@@ -109,35 +198,38 @@ All data lives in a single Google Spreadsheet (ID: `16KzR3l0V6-aQe7Lus5eEsnR8Y0n
 
 | Column | Field | Description |
 |--------|-------|-------------|
-| A | Name | Unique plant name (primary key) |
-| B | Species | Common species name (references Species tab) |
-| C | Caretaker | Assigned caretaker (Josh or Deanna) |
-| D | Location | Physical location in the home |
-| E | Acquired Date | Date the plant was acquired |
-| F | Photo | Google Drive file ID for the plant photo |
-| G | Pot | Pot description (type, size) |
-| H | Notes | Free-text notes |
+| A | ID | Unique plant identifier (P001, P002, ...) — primary key, auto-generated |
+| B | Name | Display name for the plant |
+| C | Species | Common species name (references Species tab) |
+| D | Caretaker | Assigned caretaker (Josh or Deanna) |
+| E | Location | Physical location in the home |
+| F | Acquired Date | Date the plant was acquired |
+| G | Photo | Google Drive file ID for the plant photo |
+| H | Pot | Pot description (type, size) |
+| I | Notes | Free-text notes |
+
+The ID field uses the format `P` followed by a zero-padded three-digit number. When adding a new plant, the app scans existing IDs to determine the next available number.
 
 ### 4.2 Events (Sheet Tab)
 
 | Column | Field | Description |
 |--------|-------|-------------|
-| A | Plant | Plant name (foreign key to Inventory.Name) |
+| A | Plant ID | Plant identifier (foreign key to Inventory.ID) |
 | B | Timestamp | ISO 8601 timestamp of the event |
 | C | Event Type | Type of care event (references Event Types) |
 | D | Outcome | One of: `Done`, `Snoozed`, `Skipped` |
 
-This is an append-only log. Events are never modified or deleted.
+Events are primarily append-only but can be individually edited (event type, outcome) or deleted via the "Show All" event table in the Plant Detail view.
 
 ### 4.3 Schedules (Sheet Tab)
 
 | Column | Field | Description |
 |--------|-------|-------------|
-| A | Plant | Plant name (foreign key to Inventory.Name) |
+| A | Plant ID | Plant identifier (foreign key to Inventory.ID) |
 | B | Cadence | Number of days between care events |
 | C | Event Type | Type of care event (references Event Types) |
 
-A plant can have multiple schedules (e.g., Water every 7 days, Fertilize every 30 days).
+A plant can have multiple schedules (e.g., Water every 7 days, Fertilize every 30 days). There are no formula columns in this sheet.
 
 ### 4.4 Event Types (Sheet Tab)
 
@@ -170,8 +262,8 @@ The schedule engine (`src/utils/scheduleEngine.js`) computes the urgency state f
 
 **Core Algorithm:**
 
-1. For each schedule (plant + event type + cadence):
-   - Find all matching events (same plant and event type), sorted newest first
+1. For each schedule (plant ID + event type + cadence):
+   - Find all matching events (same plant ID and event type), sorted newest first
    - Find the most recent event with outcome = "Done" (`lastDone`)
 
 2. Compute `nextDue`:
@@ -202,6 +294,7 @@ The schedule engine (`src/utils/scheduleEngine.js`) computes the urgency state f
 - Cache structure: `{ version: 1, timestamp: Date.now(), data: { inventory, events, schedules, eventTypes, species } }`
 - Cache is refreshed on every successful `fetchAllData` call
 - Version field allows cache invalidation on schema changes
+- Failure: Silently catches localStorage errors (quota exceeded, private browsing)
 
 ### 5.3 Mobile-First Design
 
@@ -210,22 +303,35 @@ The schedule engine (`src/utils/scheduleEngine.js`) computes the urgency state f
 - Touch-friendly: minimum 44px tap targets, 36px action buttons
 - Responsive layout: CSS grid with mobile-appropriate column counts
 - Sticky header for persistent navigation
+- Sticky search bar at the top of the dashboard
 - Floating action button (FAB) for quick plant addition
+- "Back to top" button appears after scrolling down 400px
 - Camera capture via `capture="environment"` attribute on file inputs
+- Scroll-to-top on navigation to detail/addPlant views
 
 ### 5.4 PWA Installability
 
-- Theme color set to `#5CB947` (brand green) via meta tag
-- Single-page application architecture suitable for service worker caching
-- No current manifest.json or service worker (future enhancement)
+- `manifest.json` with app name ("Plant Tracker"), icons (192px and 512px), standalone display mode, start URL `/plant-tracker/`, and theme color `#5CB947`
+- Service worker registered at `/plant-tracker/sw.js` for installability
+- Theme color set to `#5CB947` (brand green) via meta tag and manifest
+- App ID set to `/plant-tracker/` for consistent identity across installs
 
-### 5.5 Sync Status Feedback
+### 5.5 Deployment
+
+The app is deployed to **GitHub Pages** via a GitHub Actions workflow:
+- Triggered on push to the `master` branch or manual dispatch
+- Builds with Node 20, runs `npm ci` and `npm run build`
+- Deploys the `dist/` directory as a GitHub Pages artifact
+- Base path configured as `/plant-tracker/` in Vite config
+- Production URL: `https://<username>.github.io/plant-tracker/`
+
+### 5.6 Sync Status Feedback
 
 The UI displays sync status in the header:
 - **Syncing** — yellow badge while a write operation is in progress
 - **Error** — red badge if a write operation fails
 - **Synced** — no badge (success state is implicit)
 
-### 5.6 Optimistic Updates
+### 5.7 Optimistic Updates
 
 Write operations (logEvent, addPlant, removePlant, etc.) update local state immediately before the API call completes, providing instant UI feedback. If the API call fails, the sync status badge shows an error.

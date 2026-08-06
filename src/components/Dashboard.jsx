@@ -108,9 +108,39 @@ export function Dashboard({
       : []),
   ];
 
+  const parseAcquiredDate = (dateStr) => {
+    if (!dateStr) return null;
+    const d = new Date(dateStr);
+    return isNaN(d.getTime()) ? null : d;
+  };
+
   const allPlantsSorted = sortBy === 'name'
     ? [...allPlants].sort((a, b) => (a.plant.name || '').localeCompare(b.plant.name || ''))
-    : allPlants;
+    : sortBy === 'acquired'
+      ? [...allPlants].sort((a, b) => {
+          const aDate = parseAcquiredDate(a.plant.acquiredDate);
+          const bDate = parseAcquiredDate(b.plant.acquiredDate);
+          if (!aDate && !bDate) return 0;
+          if (!aDate) return 1;
+          if (!bDate) return -1;
+          return bDate - aDate; // newest first
+        })
+      : allPlants;
+
+  const acquiredGroups = sortBy === 'acquired'
+    ? (() => {
+        const groups = {};
+        for (const item of allPlantsSorted) {
+          const d = parseAcquiredDate(item.plant.acquiredDate);
+          const key = d
+            ? `${d.toLocaleString('default', { month: 'long' })} ${d.getFullYear()}`
+            : 'Unknown';
+          if (!groups[key]) groups[key] = [];
+          groups[key].push(item);
+        }
+        return Object.entries(groups);
+      })()
+    : [];
 
   const locationGroups = sortBy === 'location'
     ? Object.entries(
@@ -237,6 +267,30 @@ export function Dashboard({
               )
           )}
         </section>
+      )}
+
+      {sortBy === 'acquired' && (
+        <>
+          {acquiredGroups.map(([period, items]) => (
+            <section key={period}>
+              <h2 class="section-title">{period}</h2>
+              {items.map((item) =>
+                item._isUnscheduled
+                  ? renderUnscheduledCard(item)
+                  : (
+                    <PlantCard
+                      key={item.plant.id}
+                      entry={item}
+                      onSelect={() => onSelectPlant({ ...item.plant, _dueEventType: item._dueEventType })}
+                      onAction={onAction}
+                      lastWatered={formatLastWatered(item.plant.id)}
+                      showImages={showImages}
+                    />
+                  )
+              )}
+            </section>
+          ))}
+        </>
       )}
 
       {sortBy === 'location' && (

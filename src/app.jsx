@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'preact/hooks';
+import { getClientSecret, setClientSecret } from './config.js';
 import { useGoogleAuth } from './hooks/useGoogleAuth.js';
 import { useSheetsData } from './hooks/useSheetsData.js';
 import { Header } from './components/Header.jsx';
@@ -7,6 +8,36 @@ import { PlantDetail } from './components/PlantDetail.jsx';
 import { AddPlantForm } from './components/AddPlantForm.jsx';
 
 export function App() {
+  const [hasSecret, setHasSecret] = useState(!!getClientSecret());
+  const [secretInput, setSecretInput] = useState('');
+
+  if (!hasSecret) {
+    return (
+      <div class="login-screen">
+        <h1>🌱 Plant Tracker</h1>
+        <p>First-time setup: enter the app secret</p>
+        <input
+          type="password"
+          class="form-input"
+          placeholder="Client secret"
+          value={secretInput}
+          onInput={(e) => setSecretInput(e.target.value)}
+          style="max-width: 320px; text-align: center;"
+        />
+        <button
+          class="btn btn-primary"
+          disabled={!secretInput.trim()}
+          onClick={() => {
+            setClientSecret(secretInput.trim());
+            setHasSecret(true);
+          }}
+        >
+          Save & Continue
+        </button>
+      </div>
+    );
+  }
+
   const auth = useGoogleAuth();
   const data = useSheetsData(auth.accessToken);
   const [selectedPlant, setSelectedPlant] = useState(null);
@@ -48,10 +79,16 @@ export function App() {
     return (
       <div class="login-screen">
         <h1>🌱 Plant Tracker</h1>
-        <p>Sign in to manage your plants</p>
-        <button class="btn btn-primary" onClick={auth.signIn}>
-          Sign in with Google
-        </button>
+        {auth.isRefreshing ? (
+          <p>Signing in...</p>
+        ) : (
+          <>
+            <p>Sign in to manage your plants</p>
+            <button class="btn btn-primary" onClick={auth.signIn}>
+              Sign in with Google
+            </button>
+          </>
+        )}
       </div>
     );
   }

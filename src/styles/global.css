@@ -871,3 +871,49 @@ body {
   display: flex;
   gap: 8px;
 }
+
+/* Event table (Show All) */
+.btn-show-all-events {
+  margin-top: 8px;
+  margin-bottom: 8px;
+  background: var(--gray-light);
+  border: 1px solid #ddd;
+}
+
+.event-table-container {
+  overflow-x: auto;
+  margin: 12px 0;
+}
+
+.event-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.event-table th,
+.event-table td {
+  padding: 8px 6px;
+  text-align: left;
+  border-bottom: 1px solid #eee;
+}
+
+.event-table th {
+  font-weight: 600;
+  color: var(--text-light);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+}
+
+.event-table td .btn-action {
+  width: 28px;
+  height: 28px;
+  font-size: 0.85rem;
+  margin-right: 4px;
+}
+
+.form-select-compact {
+  min-height: 32px;
+  padding: 4px 8px;
+  font-size: 0.85rem;
+}

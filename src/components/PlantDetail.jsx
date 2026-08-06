@@ -3,6 +3,9 @@ import { getPhotoUrl } from '../services/drive.js';
 import { PhotoCapture } from './PhotoCapture.jsx';
 
 export function PlantDetail({ plant, data, onBack, onAction, onRemove, onPropagate, showImages }) {
+  // Always look up the current plant from data so we get fresh photo/name/etc.
+  const currentPlant = data.inventory?.find((p) => p.id === plant.id) || plant;
+
   const [showConfirmRemove, setShowConfirmRemove] = useState(false);
   const [editingSchedule, setEditingSchedule] = useState(null);
   const [editCadence, setEditCadence] = useState('');
@@ -12,26 +15,30 @@ export function PlantDetail({ plant, data, onBack, onAction, onRemove, onPropaga
   const [loggingEvent, setLoggingEvent] = useState(false);
   const [adHocType, setAdHocType] = useState('');
   const [adHocDate, setAdHocDate] = useState('');
+  const [showAllEvents, setShowAllEvents] = useState(false);
+  const [editingEvent, setEditingEvent] = useState(null); // index in plantEvents
+  const [editEventType, setEditEventType] = useState('');
+  const [editEventOutcome, setEditEventOutcome] = useState('');
 
   // Inline editing state
   const [editing, setEditing] = useState(false);
-  const [editName, setEditName] = useState(plant.name || '');
-  const [editLocation, setEditLocation] = useState(plant.location || '');
-  const [editCaretaker, setEditCaretaker] = useState(plant.caretaker || '');
-  const [editPot, setEditPot] = useState(plant.pot || '');
-  const [editNotes, setEditNotes] = useState(plant.notes || '');
+  const [editName, setEditName] = useState(currentPlant.name || '');
+  const [editLocation, setEditLocation] = useState(currentPlant.location || '');
+  const [editCaretaker, setEditCaretaker] = useState(currentPlant.caretaker || '');
+  const [editPot, setEditPot] = useState(currentPlant.pot || '');
+  const [editNotes, setEditNotes] = useState(currentPlant.notes || '');
   const [saving, setSaving] = useState(false);
 
   const speciesInfo = data.species?.find(
-    (s) => s.name === plant.species || s.name === plant.name
+    (s) => s.name === currentPlant.species || s.name === currentPlant.name
   );
 
   const plantSchedules = data.scheduleStatuses?.filter(
-    (s) => s.plantId === plant.id
+    (s) => s.plantId === currentPlant.id
   );
 
   // All events for this plant, grouped by event type with last-done date
-  const plantEvents = (data.events || []).filter((e) => e.plantId === plant.id);
+  const plantEvents = (data.events || []).filter((e) => e.plantId === currentPlant.id);
   const activityByType = new Map();
   for (const event of plantEvents) {
     if (!activityByType.has(event.eventType)) {
@@ -47,23 +54,46 @@ export function PlantDetail({ plant, data, onBack, onAction, onRemove, onPropaga
     }
   }
 
-  const photoUrl = plant.photo ? getPhotoUrl(plant.photo) : null;
+  const photoUrl = currentPlant.photo ? getPhotoUrl(currentPlant.photo) : null;
 
   const handleLogAdHocEvent = async () => {
     if (!adHocType) return;
     const ts = adHocDate ? new Date(adHocDate + 'T12:00:00').toISOString() : undefined;
-    await data.logEvent(plant.id, adHocType, 'Done', ts);
+    await data.logEvent(currentPlant.id, adHocType, 'Done', ts);
     setAdHocType('');
     setAdHocDate('');
     setLoggingEvent(false);
   };
 
   const handlePhotoUpload = async (file) => {
-    await data.uploadPlantPhoto(plant.id, file);
+    await data.uploadPlantPhoto(currentPlant.id, file);
   };
 
   const handleRemove = async () => {
-    await onRemove(plant.id);
+    await onRemove(currentPlant.id);
+  };
+
+  const handleDeleteEvent = async (eventIndex) => {
+    await data.deleteEvent(currentPlant.id, eventIndex);
+  };
+
+  const handleStartEditEvent = (eventIndex) => {
+    const event = plantEvents[eventIndex];
+    setEditingEvent(eventIndex);
+    setEditEventType(event.eventType);
+    setEditEventOutcome(event.outcome);
+  };
+
+  const handleSaveEditEvent = async () => {
+    if (editingEvent === null) return;
+    const event = plantEvents[editingEvent];
+    await data.updateEvent(currentPlant.id, editingEvent, {
+      eventType: editEventType,
+      outcome: editEventOutcome,
+    });
+    setEditingEvent(null);
+    setEditEventType('');
+    setEditEventOutcome('');
   };
 
   const handleEditSchedule = (eventType, cadence) => {
@@ -73,29 +103,29 @@ export function PlantDetail({ plant, data, onBack, onAction, onRemove, onPropaga
 
   const handleSaveSchedule = async () => {
     if (!editCadence) return;
-    await data.updateSchedule(plant.id, editingSchedule, parseInt(editCadence, 10));
+    await data.updateSchedule(currentPlant.id, editingSchedule, parseInt(editCadence, 10));
     setEditingSchedule(null);
     setEditCadence('');
   };
 
   const handleRemoveSchedule = async (eventType) => {
-    await data.removeSchedule(plant.id, eventType);
+    await data.removeSchedule(currentPlant.id, eventType);
   };
 
   const handleAddSchedule = async () => {
     if (!newSchedType || !newSchedCadence) return;
-    await data.addSchedule(plant.id, parseInt(newSchedCadence, 10), newSchedType);
+    await data.addSchedule(currentPlant.id, parseInt(newSchedCadence, 10), newSchedType);
     setNewSchedType('');
     setNewSchedCadence('');
     setAddingSchedule(false);
   };
 
   const handleStartEdit = () => {
-    setEditName(plant.name || '');
-    setEditLocation(plant.location || '');
-    setEditCaretaker(plant.caretaker || '');
-    setEditPot(plant.pot || '');
-    setEditNotes(plant.notes || '');
+    setEditName(currentPlant.name || '');
+    setEditLocation(currentPlant.location || '');
+    setEditCaretaker(currentPlant.caretaker || '');
+    setEditPot(currentPlant.pot || '');
+    setEditNotes(currentPlant.notes || '');
     setEditing(true);
   };
 
@@ -106,19 +136,13 @@ export function PlantDetail({ plant, data, onBack, onAction, onRemove, onPropaga
   const handleSaveEdit = async () => {
     setSaving(true);
     try {
-      await data.updatePlant(plant.id, {
+      await data.updatePlant(currentPlant.id, {
         name: editName.trim(),
         location: editLocation.trim(),
         caretaker: editCaretaker.trim(),
         pot: editPot.trim(),
         notes: editNotes.trim(),
       });
-      // Update local plant reference so UI reflects changes immediately
-      plant.name = editName.trim();
-      plant.location = editLocation.trim();
-      plant.caretaker = editCaretaker.trim();
-      plant.pot = editPot.trim();
-      plant.notes = editNotes.trim();
       setEditing(false);
     } catch (err) {
       console.error('Failed to save plant edits:', err);
@@ -140,7 +164,7 @@ export function PlantDetail({ plant, data, onBack, onAction, onRemove, onPropaga
 
       {photoUrl && (
         <div class="plant-photo-container">
-          <img src={photoUrl} alt={plant.name} class="plant-photo" />
+          <img src={photoUrl} alt={currentPlant.name} class="plant-photo" />
         </div>
       )}
 
@@ -155,9 +179,9 @@ export function PlantDetail({ plant, data, onBack, onAction, onRemove, onPropaga
           />
         </div>
       ) : (
-        <h2>{plant.name}</h2>
+        <h2>{currentPlant.name}</h2>
       )}
-      {plant.species && <p class="species-name">{plant.species}</p>}
+      {currentPlant.species && <p class="species-name">{currentPlant.species}</p>}
 
       <div class="detail-actions-bar">
         {!editing && (
@@ -166,27 +190,29 @@ export function PlantDetail({ plant, data, onBack, onAction, onRemove, onPropaga
           </button>
         )}
         {onPropagate && !editing && (
-          <button class="btn btn-small btn-propagate" onClick={() => onPropagate(plant)}>
+          <button class="btn btn-small btn-propagate" onClick={() => onPropagate(currentPlant)}>
             Propagate
           </button>
         )}
       </div>
 
       <div class="quick-actions">
-        <button class="btn btn-quick btn-quick-water" onClick={() => data.logEvent(plant.id, 'Water', 'Done')}>
+        <button class="btn btn-quick btn-quick-water" onClick={() => data.logEvent(currentPlant.id, 'Water', 'Done')}>
           💧 Water
         </button>
-        <button class="btn btn-quick btn-quick-fertilize" onClick={() => data.logEvent(plant.id, 'Fertilize', 'Done')}>
+        <button class="btn btn-quick btn-quick-fertilize" onClick={() => data.logEvent(currentPlant.id, 'Fertilize', 'Done')}>
           🌿 Fertilize
         </button>
-        <button class="btn btn-quick btn-quick-repot" onClick={() => data.logEvent(plant.id, 'Repot', 'Done')}>
+        <button class="btn btn-quick btn-quick-repot" onClick={() => data.logEvent(currentPlant.id, 'Repot', 'Done')}>
           🪴 Repot
         </button>
       </div>
 
-      <div class="photo-section">
-        <PhotoCapture onUpload={handlePhotoUpload} />
-      </div>
+      {(!currentPlant.photo || editing) && (
+        <div class="photo-section">
+          <PhotoCapture onUpload={handlePhotoUpload} />
+        </div>
+      )}
 
       <div class="detail-grid">
         {editing ? (
@@ -209,10 +235,10 @@ export function PlantDetail({ plant, data, onBack, onAction, onRemove, onPropaga
                 onChange={(e) => setEditCaretaker(e.target.value)}
               />
             </div>
-            {plant.acquiredDate && (
+            {currentPlant.acquiredDate && (
               <div class="detail-item">
                 <label>Acquired</label>
-                <span>{plant.acquiredDate}</span>
+                <span>{currentPlant.acquiredDate}</span>
               </div>
             )}
             <div class="detail-item">
@@ -244,34 +270,34 @@ export function PlantDetail({ plant, data, onBack, onAction, onRemove, onPropaga
           </>
         ) : (
           <>
-            {plant.location && (
+            {currentPlant.location && (
               <div class="detail-item">
                 <label>Location</label>
-                <span>{plant.location}</span>
+                <span>{currentPlant.location}</span>
               </div>
             )}
-            {plant.caretaker && (
+            {currentPlant.caretaker && (
               <div class="detail-item">
                 <label>Caretaker</label>
-                <span>{plant.caretaker}</span>
+                <span>{currentPlant.caretaker}</span>
               </div>
             )}
-            {plant.acquiredDate && (
+            {currentPlant.acquiredDate && (
               <div class="detail-item">
                 <label>Acquired</label>
-                <span>{plant.acquiredDate}</span>
+                <span>{currentPlant.acquiredDate}</span>
               </div>
             )}
-            {plant.pot && (
+            {currentPlant.pot && (
               <div class="detail-item">
                 <label>Pot</label>
-                <span>{plant.pot}</span>
+                <span>{currentPlant.pot}</span>
               </div>
             )}
-            {plant.notes && (
+            {currentPlant.notes && (
               <div class="detail-item full-width">
                 <label>Notes</label>
-                <span>{plant.notes}</span>
+                <span>{currentPlant.notes}</span>
               </div>
             )}
           </>
@@ -304,6 +330,92 @@ export function PlantDetail({ plant, data, onBack, onAction, onRemove, onPropaga
           </div>
         ) : (
           <p class="empty-schedule">No activity recorded yet.</p>
+        )}
+
+        {plantEvents.length > 0 && (
+          <button
+            class="btn btn-small btn-show-all-events"
+            onClick={() => setShowAllEvents(!showAllEvents)}
+          >
+            {showAllEvents ? 'Hide All' : 'Show All'}
+          </button>
+        )}
+
+        {showAllEvents && (
+          <div class="event-table-container">
+            <table class="event-table">
+              <thead>
+                <tr>
+                  <th>Timestamp</th>
+                  <th>Event Type</th>
+                  <th>Outcome</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[...plantEvents].reverse().map((event, reverseIdx) => {
+                  const eventIndex = plantEvents.length - 1 - reverseIdx;
+                  return (
+                    <tr key={reverseIdx}>
+                      {editingEvent === eventIndex ? (
+                        <>
+                          <td>{new Date(event.timestamp).toLocaleString()}</td>
+                          <td>
+                            <select
+                              class="form-select form-select-compact"
+                              value={editEventType}
+                              onChange={(e) => setEditEventType(e.target.value)}
+                            >
+                              {(data.eventTypes || []).map((t) => (
+                                <option key={t} value={t}>{t}</option>
+                              ))}
+                            </select>
+                          </td>
+                          <td>
+                            <select
+                              class="form-select form-select-compact"
+                              value={editEventOutcome}
+                              onChange={(e) => setEditEventOutcome(e.target.value)}
+                            >
+                              <option value="Done">Done</option>
+                              <option value="Snoozed">Snoozed</option>
+                              <option value="Skipped">Skipped</option>
+                            </select>
+                          </td>
+                          <td>
+                            <button class="btn btn-small btn-save" onClick={handleSaveEditEvent}>Save</button>
+                            <button class="btn btn-small" onClick={() => setEditingEvent(null)}>Cancel</button>
+                          </td>
+                        </>
+                      ) : (
+                        <>
+                          <td>{new Date(event.timestamp).toLocaleString()}</td>
+                          <td>{event.eventType}</td>
+                          <td>{event.outcome}</td>
+                          <td>
+                            <button
+                              class="btn btn-action btn-edit"
+                              onClick={() => handleStartEditEvent(eventIndex)}
+                              title="Edit"
+                            >
+                              ✎
+                            </button>
+                            <button
+                              class="btn btn-action btn-remove"
+                              onClick={() => handleDeleteEvent(eventIndex)}
+                              title="Delete"
+                            >
+                              ✕
+                            </button>
+                          </td>
+                        </>
+                      )}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         )}
 
         {loggingEvent ? (
@@ -531,7 +643,7 @@ export function PlantDetail({ plant, data, onBack, onAction, onRemove, onPropaga
       <section class="detail-section danger-zone">
         {showConfirmRemove ? (
           <div class="confirm-remove">
-            <p>Remove <strong>{plant.name}</strong> and all its schedules?</p>
+            <p>Remove <strong>{currentPlant.name}</strong> and all its schedules?</p>
             <div class="confirm-actions">
               <button class="btn btn-danger" onClick={handleRemove}>
                 Yes, Remove

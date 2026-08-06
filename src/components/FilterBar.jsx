@@ -30,6 +30,7 @@ export function FilterBar({
         <option value="urgency">Needs Attention</option>
         <option value="name">Plant Name</option>
         <option value="location">Location</option>
+        <option value="acquired">Acquired Date</option>
       </select>
     </div>
   );
