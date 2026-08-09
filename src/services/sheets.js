@@ -4,7 +4,7 @@ const BASE_URL = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SPREADS
 
 export async function fetchAllData(accessToken) {
   const ranges = [
-    'Inventory!A:I',
+    'Inventory!A:M',
     'Events!A:D',
     'Schedules!A:C',
     'Event Types!A:A',
@@ -206,6 +206,10 @@ function parseInventory(rows) {
     photo: row[6] || '',
     pot: row[7] || '',
     notes: row[8] || '',
+    light: row[9] || '',
+    water: row[10] || '',
+    humidity: row[11] || '',
+    fertilizing: row[12] || '',
   }));
 }
 

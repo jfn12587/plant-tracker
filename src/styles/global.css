@@ -538,6 +538,10 @@ body {
   margin-left: auto;
 }
 
+.multiline-text {
+  white-space: pre-wrap;
+}
+
 .care-item {
   margin-bottom: 14px;
   font-size: 0.9rem;

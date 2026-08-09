@@ -127,6 +127,10 @@ export function App() {
       acquiredDate: new Date().toISOString().split('T')[0],
       pot: plant.pot || '',
       notes: plant.notes || '',
+      light: plant.light || '',
+      water: plant.water || '',
+      humidity: plant.humidity || '',
+      fertilizing: plant.fertilizing || '',
     });
     setView('addPlant');
   };

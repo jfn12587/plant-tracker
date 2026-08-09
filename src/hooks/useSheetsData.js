@@ -128,6 +128,10 @@ export function useSheetsData(accessToken) {
           '', // photo
           plantData.pot || '',
           plantData.notes || '',
+          plantData.light || '',
+          plantData.water || '',
+          plantData.humidity || '',
+          plantData.fertilizing || '',
         ];
         await appendRow(accessToken, 'Inventory', values);
 
@@ -141,6 +145,10 @@ export function useSheetsData(accessToken) {
           photo: '',
           pot: plantData.pot || '',
           notes: plantData.notes || '',
+          light: plantData.light || '',
+          water: plantData.water || '',
+          humidity: plantData.humidity || '',
+          fertilizing: plantData.fertilizing || '',
         };
         setRaw((prev) => ({
           ...prev,
@@ -177,8 +185,12 @@ export function useSheetsData(accessToken) {
           updated.photo,
           updated.pot,
           updated.notes,
+          updated.light || '',
+          updated.water || '',
+          updated.humidity || '',
+          updated.fertilizing || '',
         ];
-        const range = `Inventory!A${sheetRow}:I${sheetRow}`;
+        const range = `Inventory!A${sheetRow}:M${sheetRow}`;
         await updateRow(accessToken, range, values);
 
         setRaw((prev) => ({

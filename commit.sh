@@ -1,20 +1,15 @@
 #!/bin/bash
-git add -A && git commit -m "Add persistent auth, event management, acquired date sort, photo UX improvements
+git add -A && git commit -m "Add per-plant care fields, species auto-fill, multiline rendering, backfill script
 
-Auth:
-- Switch from implicit grant to OAuth authorization code flow with refresh tokens
-- Client secret entered once per device, stored in localStorage (not in repo)
-- Auto-refresh access token before expiry, persistent login across app restarts
+New features:
+- Light, Water, Humidity, Fertilizing free-text fields on each plant (columns J-M)
+- Multiline text preserved in Notes and care fields (pre-wrap rendering)
+- Species auto-fill: selecting a species in Add Plant form populates care fields
+- Care fields copied on plant propagation
 
-Features:
-- Acquired Date sort with grouped month/year section headers
-- Activity Show All expands full event history table with edit/delete per event
-- Photo picker hidden when plant already has a photo (visible in edit mode)
-- Photo updates immediately in detail view after upload (stale data fix)
-
-Fixes:
-- Acquired date sort now parses dates correctly (was string-comparing month names)
-- localStorage for auth persistence (sessionStorage was clearing on app close)
+Tooling:
+- scripts/backfill-care-fields.py generates TSV from species data for bulk import
+- .gitignore updated to exclude CSVs, TSVs, and commit.sh
 
 Specs:
-- Product and system specs updated to reflect all changes" && git push
+- Product and system specs updated with new schema, components, and backfill docs" && git push

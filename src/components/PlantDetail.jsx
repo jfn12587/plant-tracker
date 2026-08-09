@@ -27,6 +27,10 @@ export function PlantDetail({ plant, data, onBack, onAction, onRemove, onPropaga
   const [editCaretaker, setEditCaretaker] = useState(currentPlant.caretaker || '');
   const [editPot, setEditPot] = useState(currentPlant.pot || '');
   const [editNotes, setEditNotes] = useState(currentPlant.notes || '');
+  const [editLight, setEditLight] = useState(currentPlant.light || '');
+  const [editWater, setEditWater] = useState(currentPlant.water || '');
+  const [editHumidity, setEditHumidity] = useState(currentPlant.humidity || '');
+  const [editFertilizing, setEditFertilizing] = useState(currentPlant.fertilizing || '');
   const [saving, setSaving] = useState(false);
 
   const speciesInfo = data.species?.find(
@@ -126,6 +130,10 @@ export function PlantDetail({ plant, data, onBack, onAction, onRemove, onPropaga
     setEditCaretaker(currentPlant.caretaker || '');
     setEditPot(currentPlant.pot || '');
     setEditNotes(currentPlant.notes || '');
+    setEditLight(currentPlant.light || '');
+    setEditWater(currentPlant.water || '');
+    setEditHumidity(currentPlant.humidity || '');
+    setEditFertilizing(currentPlant.fertilizing || '');
     setEditing(true);
   };
 
@@ -142,6 +150,10 @@ export function PlantDetail({ plant, data, onBack, onAction, onRemove, onPropaga
         caretaker: editCaretaker.trim(),
         pot: editPot.trim(),
         notes: editNotes.trim(),
+        light: editLight.trim(),
+        water: editWater.trim(),
+        humidity: editHumidity.trim(),
+        fertilizing: editFertilizing.trim(),
       });
       setEditing(false);
     } catch (err) {
@@ -259,6 +271,42 @@ export function PlantDetail({ plant, data, onBack, onAction, onRemove, onPropaga
                 rows="3"
               />
             </div>
+            <div class="detail-item full-width">
+              <label class="form-label">Light</label>
+              <textarea
+                class="form-textarea"
+                value={editLight}
+                onChange={(e) => setEditLight(e.target.value)}
+                rows="2"
+              />
+            </div>
+            <div class="detail-item full-width">
+              <label class="form-label">Water</label>
+              <textarea
+                class="form-textarea"
+                value={editWater}
+                onChange={(e) => setEditWater(e.target.value)}
+                rows="2"
+              />
+            </div>
+            <div class="detail-item full-width">
+              <label class="form-label">Humidity</label>
+              <textarea
+                class="form-textarea"
+                value={editHumidity}
+                onChange={(e) => setEditHumidity(e.target.value)}
+                rows="2"
+              />
+            </div>
+            <div class="detail-item full-width">
+              <label class="form-label">Fertilizing</label>
+              <textarea
+                class="form-textarea"
+                value={editFertilizing}
+                onChange={(e) => setEditFertilizing(e.target.value)}
+                rows="2"
+              />
+            </div>
             <div class="detail-item full-width edit-buttons">
               <button class="btn btn-primary" onClick={handleSaveEdit} disabled={saving}>
                 {saving ? 'Saving...' : 'Save'}
@@ -297,7 +345,31 @@ export function PlantDetail({ plant, data, onBack, onAction, onRemove, onPropaga
             {currentPlant.notes && (
               <div class="detail-item full-width">
                 <label>Notes</label>
-                <span>{currentPlant.notes}</span>
+                <MultilineText text={currentPlant.notes} />
+              </div>
+            )}
+            {currentPlant.light && (
+              <div class="detail-item full-width">
+                <label>Light</label>
+                <MultilineText text={currentPlant.light} />
+              </div>
+            )}
+            {currentPlant.water && (
+              <div class="detail-item full-width">
+                <label>Water</label>
+                <MultilineText text={currentPlant.water} />
+              </div>
+            )}
+            {currentPlant.humidity && (
+              <div class="detail-item full-width">
+                <label>Humidity</label>
+                <MultilineText text={currentPlant.humidity} />
+              </div>
+            )}
+            {currentPlant.fertilizing && (
+              <div class="detail-item full-width">
+                <label>Fertilizing</label>
+                <MultilineText text={currentPlant.fertilizing} />
               </div>
             )}
           </>
@@ -663,6 +735,24 @@ export function PlantDetail({ plant, data, onBack, onAction, onRemove, onPropaga
         )}
       </section>
     </main>
+  );
+}
+
+function MultilineText({ text }) {
+  if (!text) return null;
+  const lines = text.split('\n');
+  if (lines.length <= 1) {
+    return <span>{text}</span>;
+  }
+  return (
+    <span class="multiline-text">
+      {lines.map((line, i) => (
+        <span key={i}>
+          {line}
+          {i < lines.length - 1 && <br />}
+        </span>
+      ))}
+    </span>
   );
 }
 

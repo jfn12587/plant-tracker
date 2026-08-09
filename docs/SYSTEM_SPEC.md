@@ -56,6 +56,8 @@ vera-pwa/
 ├── package.json                    Dependencies: preact, vite, @preact/preset-vite
 ├── package-lock.json               Lockfile
 ├── vite.config.js                  Vite config with preact plugin, base path, port 5173
+├── scripts/
+│   └── backfill-care-fields.py     Matches plants to species data; outputs TSV for columns J-M
 ├── public/
 │   ├── manifest.json               PWA manifest (name, icons, display mode, theme color)
 │   ├── sw.js                       Service worker for installability
@@ -84,7 +86,8 @@ vera-pwa/
     │   ├── FilterBar.jsx           Dropdowns for event type, location, and sort mode
     │   ├── PlantDetail.jsx         Full plant info: edit mode, schedules, activity, species guide, propagate
     │   ├── AddPlantForm.jsx        Two-step form: plant metadata then schedule setup
-    │   └── PhotoCapture.jsx        File input with camera capture, client-side resize, upload
+    │   ├── PhotoCapture.jsx        File input with camera capture, client-side resize, upload
+    │   └── MultilineText.jsx       Renders text with preserved newlines (white-space: pre-wrap)
     ├── hooks/
     │   ├── useGoogleAuth.js        GIS code client, auth code exchange, refresh token persistence, auto-refresh
     │   └── useSheetsData.js        Data fetching, CRUD operations, optimistic updates, computed state
@@ -174,7 +177,7 @@ https://sheets.googleapis.com/v4/spreadsheets/16KzR3l0V6-aQe7Lus5eEsnR8Y0ncoW7YG
 #### Data Fetching
 
 `fetchAllData` fetches five ranges in a single batchGet call:
-- `Inventory!A:I` (9 columns, includes ID)
+- `Inventory!A:M` (13 columns, includes ID and care fields)
 - `Events!A:D`
 - `Schedules!A:C`
 - `Event Types!A:A`
@@ -183,7 +186,7 @@ https://sheets.googleapis.com/v4/spreadsheets/16KzR3l0V6-aQe7Lus5eEsnR8Y0ncoW7YG
 #### Data Parsing
 
 Raw sheet values are parsed into typed objects by helper functions:
-- `parseInventory(rows)` — maps columns A-I to `{ id, name, species, caretaker, location, acquiredDate, photo, pot, notes }`
+- `parseInventory(rows)` — maps columns A-M to `{ id, name, species, caretaker, location, acquiredDate, photo, pot, notes, light, water, humidity, fertilizing }`
 - `parseEvents(rows)` — maps columns A-D to `{ plantId, timestamp, eventType, outcome }`
 - `parseSchedules(rows)` — maps columns A-C to `{ plantId, cadence (int), eventType }`
 - `parseEventTypes(rows)` — extracts column A as a flat string array
@@ -225,7 +228,7 @@ Write operations follow this pattern:
 Operations with optimistic updates:
 - `logEvent` — appends to `raw.events` (supports optional timestamp for back-dating)
 - `addPlant` — appends to `raw.inventory` with auto-generated ID
-- `updatePlant` — maps over `raw.inventory` to update editable fields
+- `updatePlant` — maps over `raw.inventory` to update editable fields; writes to `Inventory!A{row}:M{row}`
 - `removePlant` — filters from `raw.inventory` and `raw.schedules`
 - `addSchedule` — appends to `raw.schedules`
 - `updateSchedule` — maps over `raw.schedules`
@@ -412,15 +415,15 @@ RETURN array of { plant, schedules, maxOverdue, _dueEventType }
 - `editingSchedule` / `editCadence` — inline schedule edit state
 - `addingSchedule` / `newSchedType` / `newSchedCadence` — new schedule form state
 - `loggingEvent` / `adHocType` / `adHocDate` — ad-hoc event logging state with date picker
-- `editing` / `editName` / `editLocation` / `editCaretaker` / `editPot` / `editNotes` / `saving` — inline plant editing state
+- `editing` / `editName` / `editLocation` / `editCaretaker` / `editPot` / `editNotes` / `editLight` / `editWater` / `editHumidity` / `editFertilizing` / `saving` — inline plant editing state
 - `showAllEvents` — toggles full event history table
 - `editingEvent` / `editEventType` / `editEventOutcome` — inline event edit state
 
 **Responsibility:** Full plant information display with all management capabilities:
 - Always shows photo if available; file picker hidden when photo exists (shown in edit mode)
 - Looks up `currentPlant` from `data.inventory` by ID to always reflect latest state (e.g., after photo upload)
-- Edit mode for Name, Location, Caretaker, Pot, Notes fields
-- Propagate button to create a derived plant
+- Edit mode for Name, Location, Caretaker, Pot, Notes, Light, Water, Humidity, Fertilizing fields
+- Propagate button to create a derived plant (copies all care fields)
 - Quick action buttons (Water/Fertilize/Repot) at the top
 - Activity history: all event types with last-done date, cadence, and count
 - "Show All" button expands a full event table with inline edit and delete per event
@@ -440,9 +443,9 @@ RETURN array of { plant, schedules, maxOverdue, _dueEventType }
 - `onCancel: () => void` — return to dashboard
 - `defaultValues: object | null` — pre-filled values for propagation (or null for blank form)
 
-**State:** Form fields (name, species, caretaker, location, acquiredDate, pot, notes), submission state, and post-add schedule management (plantAdded, schedules array).
+**State:** Form fields (name, species, caretaker, location, acquiredDate, pot, notes, light, water, humidity, fertilizing), submission state, and post-add schedule management (plantAdded, schedules array).
 
-**Responsibility:** Two-phase form — first collects plant metadata (with optional pre-fill from propagation), then (after successful creation) allows adding multiple care schedules.
+**Responsibility:** Two-phase form — first collects plant metadata (with optional pre-fill from propagation), then (after successful creation) allows adding multiple care schedules. When a species is selected from the datalist, the Light, Water, Humidity, and Fertilizing fields are auto-filled from the matching Species sheet entry.
 
 ### 7.8 PhotoCapture (`src/components/PhotoCapture.jsx`)
 
@@ -453,6 +456,13 @@ RETURN array of { plant, schedules, maxOverdue, _dueEventType }
 - `uploading` — loading state during upload
 
 **Responsibility:** File input with `capture="environment"` for mobile camera, client-side image resizing (max 1200px width, 85% JPEG quality), and upload delegation.
+
+### 7.9 MultilineText (`src/components/MultilineText.jsx`)
+
+**Props:**
+- `text: string` — raw text content (may contain newlines)
+
+**Responsibility:** Renders text with preserved line breaks using `white-space: pre-wrap` styling. Used for Notes and care fields (Light, Water, Humidity, Fertilizing) in PlantDetail so that multiline content entered in the spreadsheet or form is displayed with proper line breaks rather than collapsed into a single line.
 
 ## 8. Google Drive Integration
 
@@ -572,9 +582,9 @@ The app is served at `https://<username>.github.io/plant-tracker/` with all asse
 2. Create the following tabs with exact names and column headers:
 
 **Tab: Inventory**
-| A | B | C | D | E | F | G | H | I |
-|---|---|---|---|---|---|---|---|---|
-| ID | Name | Species | Caretaker | Location | Acquired Date | Photo | Pot | Notes |
+| A | B | C | D | E | F | G | H | I | J | K | L | M |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| ID | Name | Species | Caretaker | Location | Acquired Date | Photo | Pot | Notes | Light | Water | Humidity | Fertilizing |
 
 **Tab: Events**
 | A | B | C | D |
@@ -672,7 +682,20 @@ npm run preview
 
 Deployment happens automatically via GitHub Actions on push to `master`. For manual deployment, the `dist/` directory contains a static site compatible with any static hosting provider.
 
-## 12. Future Considerations
+## 12. Scripts
+
+### 12.1 Backfill Care Fields (`scripts/backfill-care-fields.py`)
+
+A one-time utility script that matches existing plants to their species data and generates a TSV suitable for pasting into the Inventory sheet's columns J-M (Light, Water, Humidity, Fertilizing).
+
+**Usage:**
+```bash
+python3 scripts/backfill-care-fields.py > care_fields.tsv
+```
+
+The script reads the spreadsheet data (or exported CSVs), looks up each plant's species in the Species sheet, and outputs a tab-separated file with the care field values to populate for each plant row.
+
+## 13. Future Considerations
 
 - **IndexedDB**: Replace localStorage cache with IndexedDB for larger storage and structured queries
 - **Background sync**: Queue writes when offline, sync when connection returns

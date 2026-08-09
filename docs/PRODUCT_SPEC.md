@@ -118,18 +118,21 @@ Tapping a plant card navigates to the Plant Detail view, which displays:
 - **Quick action buttons** — Water, Fertilize, Repot at the top of the detail page
 - **Photo capture section** — file input for taking or uploading a new photo
 - **Metadata grid** — location, caretaker, acquired date, pot description, notes (all inline-editable)
+- **Care fields** — Light, Water, Humidity, and Fertilizing per-plant care notes (inline-editable, multiline)
 - **Activity section** — all event types recorded for this plant, with last-done date, schedule cadence (if scheduled), and total event count
 - **Care Schedule section** — each active schedule with cadence, urgency status, and action buttons (Done/Snooze/Skip/Edit/Remove)
 - **Species Care Guide** — detailed care instructions from the Species sheet (light, water, humidity, temperature, food, toxicity, pet safety, additional care, common issues)
 - **Remove Plant** — destructive action with confirmation dialog
 
+Notes and care fields (Light, Water, Humidity, Fertilizing) preserve newlines using a MultilineText component that renders content with `white-space: pre-wrap`.
+
 ### 3.7 Edit Plant Details
 
 From the Plant Detail view, users can edit plant metadata inline:
 1. Click "Edit" button in the action bar
-2. Name, Location, Caretaker, Pot, and Notes fields become editable inputs
+2. Name, Location, Caretaker, Pot, Notes, Light, Water, Humidity, and Fertilizing fields become editable inputs
 3. Click "Save" to persist changes or "Cancel" to discard
-4. Changes are written to the full Inventory row via `updatePlant()`
+4. Changes are written to the full Inventory row (columns A-M) via `updatePlant()`
 
 The Acquired Date and Species fields are not editable from this interface.
 
@@ -139,7 +142,7 @@ From the Plant Detail view, users can create a new plant derived from the curren
 1. Click "Propagate" button in the action bar
 2. The Add Plant form opens pre-filled with:
    - Name: "{original name} Baby"
-   - Same species, caretaker, location, pot, and notes as the parent
+   - Same species, caretaker, location, pot, notes, light, water, humidity, and fertilizing as the parent
    - Acquired Date: today's date
 3. User can modify any pre-filled fields before saving
 4. On submit, a new plant is created with an auto-generated unique ID
@@ -148,9 +151,10 @@ From the Plant Detail view, users can create a new plant derived from the curren
 
 **Add Plant:**
 1. Tap the floating "+" button on the dashboard
-2. Fill in the form: Name (required), Species (autocomplete from Species sheet), Caretaker (dropdown), Location (autocomplete from existing locations), Acquired Date, Pot, Notes
-3. Submit to append a row to the Inventory sheet with an auto-generated unique ID (P001, P002, ...)
-4. Immediately transitions to a schedule setup screen to add one or more care schedules
+2. Fill in the form: Name (required), Species (autocomplete from Species sheet), Caretaker (dropdown), Location (autocomplete from existing locations), Acquired Date, Pot, Notes, Light, Water, Humidity, Fertilizing
+3. When a species is selected from the datalist, the Light, Water, Humidity, and Fertilizing fields are auto-filled from the Species sheet data (user can override)
+4. Submit to append a row to the Inventory sheet with an auto-generated unique ID (P001, P002, ...)
+5. Immediately transitions to a schedule setup screen to add one or more care schedules
 
 **Remove Plant:**
 1. From Plant Detail, tap "Remove Plant"
@@ -207,6 +211,10 @@ All data lives in a single Google Spreadsheet (ID: `16KzR3l0V6-aQe7Lus5eEsnR8Y0n
 | G | Photo | Google Drive file ID for the plant photo |
 | H | Pot | Pot description (type, size) |
 | I | Notes | Free-text notes |
+| J | Light | Per-plant light care notes (free text, multiline) |
+| K | Water | Per-plant watering care notes (free text, multiline) |
+| L | Humidity | Per-plant humidity care notes (free text, multiline) |
+| M | Fertilizing | Per-plant fertilizing care notes (free text, multiline) |
 
 The ID field uses the format `P` followed by a zero-padded three-digit number. When adding a new plant, the app scans existing IDs to determine the next available number.
 

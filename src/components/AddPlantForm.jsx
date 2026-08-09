@@ -11,6 +11,10 @@ export function AddPlantForm({ data, onSubmit, onAddSchedule, onCancel, defaultV
   );
   const [pot, setPot] = useState(defaultValues?.pot || '');
   const [notes, setNotes] = useState(defaultValues?.notes || '');
+  const [light, setLight] = useState(defaultValues?.light || '');
+  const [water, setWater] = useState(defaultValues?.water || '');
+  const [humidity, setHumidity] = useState(defaultValues?.humidity || '');
+  const [fertilizing, setFertilizing] = useState(defaultValues?.fertilizing || '');
   const [submitting, setSubmitting] = useState(false);
 
   // Schedule management after adding plant
@@ -24,6 +28,19 @@ export function AddPlantForm({ data, onSubmit, onAddSchedule, onCancel, defaultV
   const existingLocations = [
     ...new Set(data.inventory?.map((p) => p.location).filter(Boolean)),
   ].sort();
+
+  const handleSpeciesChange = (value) => {
+    setSpecies(value);
+    const match = data.species?.find(
+      (s) => s.name === value || s.scientificName === value
+    );
+    if (match) {
+      if (!light) setLight(match.light || '');
+      if (!water) setWater(match.water || '');
+      if (!humidity) setHumidity(match.humidity || '');
+      if (!fertilizing) setFertilizing(match.food || '');
+    }
+  };
 
   const handleSubmitPlant = async (e) => {
     e.preventDefault();
@@ -39,6 +56,10 @@ export function AddPlantForm({ data, onSubmit, onAddSchedule, onCancel, defaultV
         acquiredDate,
         pot: pot.trim(),
         notes: notes.trim(),
+        light: light.trim(),
+        water: water.trim(),
+        humidity: humidity.trim(),
+        fertilizing: fertilizing.trim(),
       });
       setPlantAdded(true);
     } catch (err) {
@@ -150,7 +171,7 @@ export function AddPlantForm({ data, onSubmit, onAddSchedule, onCancel, defaultV
             type="text"
             class="form-input"
             value={species}
-            onChange={(e) => setSpecies(e.target.value)}
+            onChange={(e) => handleSpeciesChange(e.target.value)}
             list="species-list"
             placeholder="Start typing..."
           />
@@ -222,6 +243,50 @@ export function AddPlantForm({ data, onSubmit, onAddSchedule, onCancel, defaultV
             onChange={(e) => setNotes(e.target.value)}
             rows="3"
             placeholder="Any notes about this plant..."
+          />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Light</label>
+          <textarea
+            class="form-textarea"
+            value={light}
+            onChange={(e) => setLight(e.target.value)}
+            rows="2"
+            placeholder="Light requirements..."
+          />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Water</label>
+          <textarea
+            class="form-textarea"
+            value={water}
+            onChange={(e) => setWater(e.target.value)}
+            rows="2"
+            placeholder="Watering instructions..."
+          />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Humidity</label>
+          <textarea
+            class="form-textarea"
+            value={humidity}
+            onChange={(e) => setHumidity(e.target.value)}
+            rows="2"
+            placeholder="Humidity preferences..."
+          />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Fertilizing</label>
+          <textarea
+            class="form-textarea"
+            value={fertilizing}
+            onChange={(e) => setFertilizing(e.target.value)}
+            rows="2"
+            placeholder="Fertilizing schedule..."
           />
         </div>
 
