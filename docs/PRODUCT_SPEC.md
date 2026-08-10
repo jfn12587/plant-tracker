@@ -36,7 +36,7 @@ The core value proposition is answering one question every day: **"Which plants 
 
 ### Multi-User Model
 
-Both users share a single Google Sheet as the data store. All plants, events, and schedules are visible to both users. The caretaker field on each plant indicates primary responsibility but does not restrict access.
+Both users share a single Google Sheet as the data store. All plants, events, and schedules are visible to both users. The caretaker field on each plant indicates primary responsibility. By default, the dashboard filters to show only the signed-in user's plants ("My Plants"). Users can toggle to "All Plants" to see everything.
 
 ## 3. Core Use Cases
 
@@ -68,6 +68,7 @@ The dashboard provides three ways to organize the plant list:
 - **Acquired Date** — flat list sorted by acquired date (newest first); plants without an acquired date appear at the bottom
 
 **Filters:**
+- **Caretaker filter** — defaults to "My Plants" (shows only the signed-in user's plants). Toggle to "All Plants" to see everything.
 - **Event Type filter** — show only plants with a specific scheduled event type (Water, Fertilize, etc.)
 - **Location filter** — show only plants in a specific location
 - **Search bar** — sticky text input that filters plants by name, location, or species (case-insensitive substring match)

@@ -47,6 +47,7 @@ export function App() {
   // Persistent filter state (survives navigation to detail/addPlant and back)
   const [filterType, setFilterType] = useState('all');
   const [filterLocation, setFilterLocation] = useState('all');
+  const [filterCaretaker, setFilterCaretaker] = useState('mine');
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState('urgency');
   const [showImages, setShowImages] = useState(true);
@@ -178,9 +179,11 @@ export function App() {
         onAddPlant={() => { setPropagateFrom(null); setView('addPlant'); }}
         filterType={filterType}
         filterLocation={filterLocation}
+        filterCaretaker={filterCaretaker}
         search={search}
         onFilterTypeChange={setFilterType}
         onFilterLocationChange={setFilterLocation}
+        onFilterCaretakerChange={setFilterCaretaker}
         onSearchChange={setSearch}
         sortBy={sortBy}
         onSortChange={setSortBy}

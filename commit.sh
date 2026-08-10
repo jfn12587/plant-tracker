@@ -1,21 +1,8 @@
 #!/bin/bash
-git add -A && git commit -m "Add crop UI, care fields, improved backfill script
+git add -A && git commit -m "Default to showing only logged-in caretaker's plants
 
-Photos:
-- Full-screen crop overlay after capture with drag-to-pan and pinch-to-zoom
-- Square crop frame (85vw), user selects framing before upload
-- CropOverlay component with touch + mouse support, GPU-accelerated transforms
-
-Care fields:
-- Light, Water, Humidity, Fertilizing columns (J-M) in Inventory sheet
-- Displayed in detail view with multiline rendering
-- Editable in edit mode, copied on propagation
-- Auto-filled from species data when creating plants
-
-Backfill:
-- Updated script uses only species matches (no guessing from notes)
-- AI-extracted care data for 36 additional plants from their notes
-- Final coverage: 128/134 plants with care data
-
-Specs:
-- Product and system specs updated with crop UI, CropOverlay component docs" && git push
+- Filter bar defaults to 'My Plants' (matches caretaker field to signed-in user)
+- Toggle to 'All Plants' to see everything
+- Applies to both scheduled and unscheduled plant sections
+- Filter persists across navigation like other filters
+- Product and system specs updated" && git push

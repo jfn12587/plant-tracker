@@ -14,6 +14,8 @@ export function Dashboard({
   search,
   onFilterTypeChange,
   onFilterLocationChange,
+  filterCaretaker,
+  onFilterCaretakerChange,
   onSearchChange,
   sortBy,
   onSortChange,
@@ -56,6 +58,10 @@ export function Dashboard({
 
   let plants = data.plantsByUrgency || [];
 
+  if (filterCaretaker === 'mine') {
+    plants = plants.filter((entry) => entry.plant.caretaker === caretaker);
+  }
+
   if (filterType !== 'all') {
     plants = plants
       .map((entry) => ({
@@ -83,6 +89,9 @@ export function Dashboard({
   // Plants with no schedule at all
   const scheduledPlantIds = new Set((data.schedules || []).map((s) => s.plantId));
   let unscheduled = (data.inventory || []).filter((p) => !scheduledPlantIds.has(p.id));
+  if (filterCaretaker === 'mine') {
+    unscheduled = unscheduled.filter((p) => p.caretaker === caretaker);
+  }
   if (filterLocation !== 'all') {
     unscheduled = unscheduled.filter((p) => p.location === filterLocation);
   }
@@ -201,9 +210,11 @@ export function Dashboard({
         locations={locations}
         filterType={filterType}
         filterLocation={filterLocation}
+        filterCaretaker={filterCaretaker}
         sortBy={sortBy}
         onTypeChange={onFilterTypeChange}
         onLocationChange={onFilterLocationChange}
+        onCaretakerChange={onFilterCaretakerChange}
         onSortChange={onSortChange}
       />
 

@@ -83,7 +83,7 @@ vera-pwa/
     │   ├── Header.jsx              Sticky header: title, sync badge, image toggle, user avatar, sign out
     │   ├── Dashboard.jsx           Main view: search bar, filter bar, sort modes, plant cards, FAB
     │   ├── PlantCard.jsx           Single plant card: urgency indicator, photo, quick actions, snooze/skip
-    │   ├── FilterBar.jsx           Dropdowns for event type, location, and sort mode
+    │   ├── FilterBar.jsx           Dropdowns for caretaker, event type, location, and sort mode
     │   ├── PlantDetail.jsx         Full plant info: edit mode, schedules, activity, species guide, propagate
     │   ├── AddPlantForm.jsx        Two-step form: plant metadata then schedule setup
     │   ├── PhotoCapture.jsx        File input with camera capture, delegates to CropOverlay
@@ -323,6 +323,7 @@ RETURN array of { plant, schedules, maxOverdue, _dueEventType }
 - `propagateFrom` — pre-filled values for the Add Plant form when propagating
 - `filterType` — event type filter (persists across navigation)
 - `filterLocation` — location filter (persists across navigation)
+- `filterCaretaker` — `'mine'` (default) or `'all'` (persists across navigation)
 - `search` — search bar text (persists across navigation)
 - `sortBy` — sort mode: `'urgency'`, `'name'`, `'location'`, or `'acquired'` (persists across navigation)
 - `showImages` — boolean toggle for dashboard thumbnails
@@ -393,12 +394,14 @@ RETURN array of { plant, schedules, maxOverdue, _dueEventType }
 - `locations: string[]` — unique locations from inventory
 - `filterType: string` — current type filter value
 - `filterLocation: string` — current location filter value
+- `filterCaretaker: string` — `'mine'` or `'all'`
 - `sortBy: string` — current sort mode
 - `onTypeChange: (value) => void`
 - `onLocationChange: (value) => void`
+- `onCaretakerChange: (value) => void`
 - `onSortChange: (value) => void`
 
-**Responsibility:** Three dropdown selects for filtering the dashboard by event type, location, and sort order (Needs Attention / Plant Name / Location / Acquired Date).
+**Responsibility:** Four dropdown selects for filtering the dashboard: caretaker (My Plants / All Plants), event type, location, and sort order (Needs Attention / Plant Name / Location / Acquired Date). Caretaker defaults to "My Plants" which filters inventory by matching the signed-in user's caretaker name.
 
 ### 7.6 PlantDetail (`src/components/PlantDetail.jsx`)
 
