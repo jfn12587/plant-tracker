@@ -1,8 +1,11 @@
 #!/bin/bash
-git add -A && git commit -m "Default to showing only logged-in caretaker's plants
+git add -A && git commit -m "Fix crop overlay, handle thumbnail rate limits
 
-- Filter bar defaults to 'My Plants' (matches caretaker field to signed-in user)
-- Toggle to 'All Plants' to see everything
-- Applies to both scheduled and unscheduled plant sections
-- Filter persists across navigation like other filters
-- Product and system specs updated" && git push
+Crop:
+- Fix CropOverlay not rendering (circular ref between container and cropBoxSize)
+- Use window.innerWidth directly instead of requiring container ref
+
+Thumbnails:
+- Add loading=lazy to stagger image requests as user scrolls
+- Add onerror handler to hide broken thumbnails on 429s
+- Use smaller sz=w200 for dashboard thumbnails" && git push

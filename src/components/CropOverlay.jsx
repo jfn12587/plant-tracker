@@ -27,9 +27,9 @@ export function CropOverlay({ file, onConfirm, onCancel }) {
 
   // Compute crop box size and initial transform once we know viewport + image
   useEffect(() => {
-    if (!imageSize || !containerRef.current) return;
+    if (!imageSize) return;
 
-    const vw = containerRef.current.clientWidth;
+    const vw = window.innerWidth;
     const boxSize = Math.floor(vw * 0.85);
     setCropBoxSize(boxSize);
 
@@ -226,7 +226,8 @@ export function CropOverlay({ file, onConfirm, onCancel }) {
     img.src = imageUrl;
   };
 
-  if (!imageUrl || !imageSize || !cropBoxSize) return null;
+  if (!imageUrl || !imageSize) return null;
+  if (!cropBoxSize) return <div class="crop-overlay" ref={containerRef} />;
 
   // Position the crop box vertically: slightly above center
   const containerWidth =

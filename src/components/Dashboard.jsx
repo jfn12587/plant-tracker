@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'preact/hooks';
 import { PlantCard } from './PlantCard.jsx';
 import { FilterBar } from './FilterBar.jsx';
-import { getPhotoUrl } from '../services/drive.js';
+import { getPhotoThumbUrl } from '../services/drive.js';
+
 
 export function Dashboard({
   data,
@@ -170,7 +171,7 @@ export function Dashboard({
       onClick={() => onSelectPlant(item.plant)}
     >
       {showImages && item.plant.photo && (
-        <img src={getPhotoUrl(item.plant.photo)} alt="" class="plant-card-thumb" />
+        <img src={getPhotoThumbUrl(item.plant.photo)} alt="" class="plant-card-thumb" loading="lazy" onError={(e) => e.target.style.display='none'} />
       )}
       <div class="plant-card-info">
         <div class="plant-card-name">{item.plant.name}</div>

@@ -32,7 +32,7 @@ export async function uploadPhoto(accessToken, file, plantName) {
   const json = await res.json();
   const fileId = json.id;
 
-  // Make the file publicly viewable so thumbnail URLs work
+  // Make the file publicly viewable
   await fetch(
     `https://www.googleapis.com/drive/v3/files/${fileId}/permissions`,
     {
@@ -51,4 +51,9 @@ export async function uploadPhoto(accessToken, file, plantName) {
 export function getPhotoUrl(fileId) {
   if (!fileId) return null;
   return `https://drive.google.com/thumbnail?id=${fileId}&sz=w800`;
+}
+
+export function getPhotoThumbUrl(fileId) {
+  if (!fileId) return null;
+  return `https://drive.google.com/thumbnail?id=${fileId}&sz=w200`;
 }
