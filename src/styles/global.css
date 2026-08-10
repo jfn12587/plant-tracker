@@ -921,3 +921,70 @@ body {
   padding: 4px 8px;
   font-size: 0.85rem;
 }
+
+/* Crop Overlay */
+.crop-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: #000;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.crop-mask {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.crop-window {
+  position: absolute;
+  z-index: 1;
+  overflow: hidden;
+  touch-action: none;
+}
+
+.crop-window-border {
+  position: absolute;
+  z-index: 3;
+  border: 2px solid rgba(255, 255, 255, 0.8);
+  border-radius: 2px;
+  pointer-events: none;
+}
+
+.crop-image {
+  position: absolute;
+  top: 0;
+  left: 0;
+  will-change: transform;
+  pointer-events: none;
+  -webkit-user-drag: none;
+}
+
+.crop-buttons {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 4;
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  padding: 24px 16px;
+  padding-bottom: max(24px, env(safe-area-inset-bottom));
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.7));
+}
+
+.crop-btn-cancel {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  min-width: 120px;
+}
+
+.crop-btn-confirm {
+  min-width: 120px;
+}

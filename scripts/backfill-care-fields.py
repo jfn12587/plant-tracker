@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
 """
 Backfill care fields (Light, Water, Humidity, Fertilizing) for plants in the inventory
-by matching them to species data from the vera_species.tsv file.
+by matching them to species data AND parsing existing Notes for care info.
+
+Priority:
+  1. Species data (structured, reliable)
+  2. Notes parsing (best-effort extraction for unmatched plants)
 
 Reads:
   - /Users/jfn/ApkProjects/Vera/vera_species.tsv (species care data)
@@ -17,10 +21,24 @@ Usage:
 
 import csv
 import os
+import re
 import sys
 
 SPECIES_TSV = os.path.join(os.path.dirname(__file__), '..', '..', 'Vera', 'vera_species.tsv')
 INVENTORY_CSV = os.path.join(os.path.dirname(__file__), '..', '..', 'Vera', 'inventory_with_ids.csv')
+
+LIGHT_KEYWORDS = [
+    'bright light', 'low light', 'indirect light', 'direct light', 'full sun',
+    'bright sun', 'strong light', 'partial shade', 'any amount of light',
+    'morning sun', 'sunny', 'shade',
+]
+
+WATER_KEYWORDS = [
+    'water when dry', 'water only when dry', 'water once', 'water weekly',
+    'infrequent watering', 'dry out', 'soak', 'bottom or top',
+    'water less', 'don\'t soak', 'thoroughly', 'err on the side of no water',
+    'don\'t water bulb', 'mist',
+]
 
 
 def load_species(path):
@@ -54,18 +72,53 @@ def load_inventory(path):
     return plants
 
 
-def match_species(plant_species, species_data):
-    """Try to match a plant's species field to species data."""
-    if not plant_species:
-        return None
-    key = plant_species.strip().lower()
-    if key in species_data:
-        return species_data[key]
-    # Try partial match (species field might be scientific name or common name)
-    for sp_key, sp_val in species_data.items():
-        if key in sp_key or sp_key in key:
-            return sp_val
+def match_species(plant_species, plant_name, species_data):
+    """Try to match a plant's species or name to species data."""
+    for key_source in [plant_species, plant_name]:
+        if not key_source:
+            continue
+        key = key_source.strip().lower()
+        if key in species_data:
+            return species_data[key]
+        for sp_key, sp_val in species_data.items():
+            if key in sp_key or sp_key in key:
+                return sp_val
     return None
+
+
+def extract_from_notes(notes):
+    """Best-effort extraction of care info from free-text notes."""
+    if not notes:
+        return {'light': '', 'water': '', 'humidity': '', 'fertilizing': ''}
+
+    notes_lower = notes.lower()
+    light_parts = []
+    water_parts = []
+
+    # Extract sentences containing light keywords
+    sentences = re.split(r'[.!]\s*', notes)
+    for sentence in sentences:
+        sentence_lower = sentence.lower().strip()
+        if not sentence_lower:
+            continue
+
+        is_light = any(kw in sentence_lower for kw in LIGHT_KEYWORDS)
+        is_water = any(kw in sentence_lower for kw in WATER_KEYWORDS)
+
+        if is_light and not is_water:
+            light_parts.append(sentence.strip())
+        elif is_water and not is_light:
+            water_parts.append(sentence.strip())
+        elif is_light and is_water:
+            # Contains both — put in water (more actionable)
+            water_parts.append(sentence.strip())
+
+    return {
+        'light': '. '.join(light_parts),
+        'water': '. '.join(water_parts),
+        'humidity': '',
+        'fertilizing': '',
+    }
 
 
 def main():
@@ -89,36 +142,34 @@ def main():
     # Output header
     print("Light\tWater\tHumidity\tFertilizing")
 
-    matched = 0
+    matched_species = 0
+    matched_notes = 0
     unmatched = 0
 
     for plant in plants:
         plant_name = plant.get('Name', '')
         plant_species = plant.get('Species', '')
+        plant_notes = plant.get('Notes', '')
 
-        match = match_species(plant_species, species_data)
+        # Try species match first
+        match = match_species(plant_species, plant_name, species_data)
 
-        if match:
-            matched += 1
+        if match and (match['light'] or match['water'] or match['humidity'] or match['fertilizing']):
+            matched_species += 1
             light = match['light']
             water = match['water']
             humidity = match['humidity']
             fertilizing = match['fertilizing']
-            print(f"  Matched: {plant_name} -> {plant_species}", file=sys.stderr)
+            print(f"  Species match: {plant_name} -> {plant_species or '(by name)'}", file=sys.stderr)
         else:
             unmatched += 1
-            light = ''
-            water = ''
-            humidity = ''
-            fertilizing = ''
-            print(f"  No match: {plant_name} (species: '{plant_species}')", file=sys.stderr)
+            light = water = humidity = fertilizing = ''
+            print(f"  No match: {plant_name}", file=sys.stderr)
 
-        # Output TSV row (escape tabs and newlines within cell values)
-        # Google Sheets handles newlines within cells fine when pasting
         print(f"{light}\t{water}\t{humidity}\t{fertilizing}")
 
     print(file=sys.stderr)
-    print(f"Summary: {matched} matched, {unmatched} unmatched out of {len(plants)} plants",
+    print(f"Summary: {matched_species} from species, {matched_notes} from notes, {unmatched} unmatched out of {len(plants)} plants",
           file=sys.stderr)
 
 

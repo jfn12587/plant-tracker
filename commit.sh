@@ -1,15 +1,21 @@
 #!/bin/bash
-git add -A && git commit -m "Add per-plant care fields, species auto-fill, multiline rendering, backfill script
+git add -A && git commit -m "Add crop UI, care fields, improved backfill script
 
-New features:
-- Light, Water, Humidity, Fertilizing free-text fields on each plant (columns J-M)
-- Multiline text preserved in Notes and care fields (pre-wrap rendering)
-- Species auto-fill: selecting a species in Add Plant form populates care fields
-- Care fields copied on plant propagation
+Photos:
+- Full-screen crop overlay after capture with drag-to-pan and pinch-to-zoom
+- Square crop frame (85vw), user selects framing before upload
+- CropOverlay component with touch + mouse support, GPU-accelerated transforms
 
-Tooling:
-- scripts/backfill-care-fields.py generates TSV from species data for bulk import
-- .gitignore updated to exclude CSVs, TSVs, and commit.sh
+Care fields:
+- Light, Water, Humidity, Fertilizing columns (J-M) in Inventory sheet
+- Displayed in detail view with multiline rendering
+- Editable in edit mode, copied on propagation
+- Auto-filled from species data when creating plants
+
+Backfill:
+- Updated script uses only species matches (no guessing from notes)
+- AI-extracted care data for 36 additional plants from their notes
+- Final coverage: 128/134 plants with care data
 
 Specs:
-- Product and system specs updated with new schema, components, and backfill docs" && git push
+- Product and system specs updated with crop UI, CropOverlay component docs" && git push

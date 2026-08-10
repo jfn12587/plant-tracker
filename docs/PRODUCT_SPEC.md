@@ -172,11 +172,14 @@ From the Plant Detail Care Schedule section:
 ### 3.11 Take and View Photos
 
 - **View:** If a plant has a photo file ID stored in the Inventory sheet, the detail view always shows the image via Google Drive thumbnail URL. Dashboard cards show thumbnails when the image toggle is active.
-- **Capture/Upload:** The PhotoCapture component provides a file input with `capture="environment"` for mobile camera access. The file picker is hidden when a photo already exists, unless the user is in edit mode (to allow replacing the photo). Images are:
-  1. Resized client-side to max 1200px width at 85% JPEG quality
-  2. Uploaded to Google Drive via multipart upload
-  3. Made publicly viewable via a permissions API call (role: reader, type: anyone)
-  4. The returned file ID is written to the Inventory sheet's Photo column (column G)
+- **Capture/Upload:** The PhotoCapture component provides a file input with `capture="environment"` for mobile camera access. The file picker is hidden when a photo already exists, unless the user is in edit mode (to allow replacing the photo). After capture:
+  1. A full-screen **crop overlay** appears, showing the image with a square crop frame
+  2. The user can **drag** (pan) the image and **pinch to zoom** to frame the subject
+  3. "Confirm" crops the selected region to a square at max 1200x1200px, 85% JPEG quality
+  4. "Cancel" discards the photo and returns to the detail page
+  5. The cropped image is uploaded to Google Drive via multipart upload
+  6. Made publicly viewable via a permissions API call (role: reader, type: anyone)
+  7. The returned file ID is written to the Inventory sheet's Photo column (column G)
 
 ### 3.12 Activity History
 

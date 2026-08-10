@@ -86,7 +86,8 @@ vera-pwa/
     │   ├── FilterBar.jsx           Dropdowns for event type, location, and sort mode
     │   ├── PlantDetail.jsx         Full plant info: edit mode, schedules, activity, species guide, propagate
     │   ├── AddPlantForm.jsx        Two-step form: plant metadata then schedule setup
-    │   ├── PhotoCapture.jsx        File input with camera capture, client-side resize, upload
+    │   ├── PhotoCapture.jsx        File input with camera capture, delegates to CropOverlay
+    │   ├── CropOverlay.jsx         Full-screen crop UI with drag/pinch-to-zoom and square frame
     │   └── MultilineText.jsx       Renders text with preserved newlines (white-space: pre-wrap)
     ├── hooks/
     │   ├── useGoogleAuth.js        GIS code client, auth code exchange, refresh token persistence, auto-refresh
@@ -450,12 +451,27 @@ RETURN array of { plant, schedules, maxOverdue, _dueEventType }
 ### 7.8 PhotoCapture (`src/components/PhotoCapture.jsx`)
 
 **Props:**
-- `onUpload: (file: Blob) => Promise<void>` — callback with resized image
+- `onUpload: (file: Blob) => Promise<void>` — callback with cropped image blob
 
 **State:**
 - `uploading` — loading state during upload
+- `cropFile` — captured file awaiting crop (null when not cropping)
 
-**Responsibility:** File input with `capture="environment"` for mobile camera, client-side image resizing (max 1200px width, 85% JPEG quality), and upload delegation.
+**Responsibility:** File input with `capture="environment"` for mobile camera. On file selection, opens CropOverlay for user-controlled cropping. After crop confirmation, delegates upload to parent.
+
+### 7.8.1 CropOverlay (`src/components/CropOverlay.jsx`)
+
+**Props:**
+- `file: File` — the captured image file to crop
+- `onConfirm: (blob: Blob) => void` — called with cropped JPEG blob
+- `onCancel: () => void` — discard and close
+
+**State:**
+- `offset` — {x, y} pan position of image
+- `scale` — zoom level (min = image fills crop frame)
+- `imageSize` — natural dimensions of the source image
+
+**Responsibility:** Full-screen overlay with a square crop frame (85vw, centered). User drags to pan and pinches to zoom the image behind the frame. On confirm, calculates the source rectangle in original image coordinates, draws to canvas at max 1200x1200, exports as JPEG at 85% quality. Uses CSS transforms for GPU-accelerated rendering. Handles touch events (single-finger drag, two-finger pinch) and mouse events (drag, scroll wheel zoom).
 
 ### 7.9 MultilineText (`src/components/MultilineText.jsx`)
 
@@ -469,12 +485,12 @@ RETURN array of { plant, schedules, maxOverdue, _dueEventType }
 ### 8.1 Photo Upload Flow (`src/services/drive.js`)
 
 ```
-1. User selects/captures image
-2. PhotoCapture.resizeImage():
-   - Create Image element from file blob
-   - If width > 1200px, scale proportionally
-   - Draw to canvas at target dimensions
-   - Export as JPEG blob at 0.85 quality
+1. User selects/captures image via file input
+2. CropOverlay opens:
+   - Displays image full-screen with square crop frame
+   - User pans (drag) and zooms (pinch/scroll) to frame subject
+   - On confirm: calculates source rect, draws to canvas at max 1200x1200, exports JPEG at 0.85
+   - On cancel: discards file, returns to detail page
 3. drive.uploadPhoto(token, blob, plantName):
    - Generate filename: "{plantName}_{ISO-timestamp}.jpg"
    - Build multipart form:
