@@ -2,6 +2,18 @@ import { CONFIG } from '../config.js';
 
 const BASE_URL = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SPREADSHEET_ID}`;
 
+async function throwApiError(res, context) {
+  let detail = '';
+  try {
+    const body = await res.text();
+    const json = JSON.parse(body);
+    detail = json.error?.message || body;
+  } catch {
+    detail = res.statusText;
+  }
+  throw new Error(`${context}: ${res.status} — ${detail}`);
+}
+
 export async function fetchAllData(accessToken) {
   const ranges = [
     'Inventory!A:M',
@@ -17,7 +29,7 @@ export async function fetchAllData(accessToken) {
   });
 
   if (!res.ok) {
-    throw new Error(`Sheets API error: ${res.status}`);
+    await throwApiError(res, 'fetchAllData');
   }
 
   const json = await res.json();
@@ -49,7 +61,7 @@ export async function appendEvent(accessToken, plantId, eventType, outcome, time
   );
 
   if (!res.ok) {
-    throw new Error(`Failed to append event: ${res.status}`);
+    await throwApiError(res, 'appendEvent');
   }
 
   return { plantId, timestamp: ts, eventType, outcome };
@@ -70,7 +82,7 @@ export async function appendRow(accessToken, sheetName, values) {
   );
 
   if (!res.ok) {
-    throw new Error(`Failed to append row to ${sheetName}: ${res.status}`);
+    await throwApiError(res, `appendRow(${sheetName})`);
   }
 
   return res.json();
@@ -90,7 +102,7 @@ export async function updateCell(accessToken, range, value) {
   );
 
   if (!res.ok) {
-    throw new Error(`Failed to update cell ${range}: ${res.status}`);
+    await throwApiError(res, `updateCell(${range})`);
   }
 
   return res.json();
@@ -110,7 +122,7 @@ export async function updateRow(accessToken, range, values) {
   );
 
   if (!res.ok) {
-    throw new Error(`Failed to update row ${range}: ${res.status}`);
+    await throwApiError(res, `updateRow(${range})`);
   }
 
   return res.json();
@@ -122,7 +134,7 @@ export async function getSheetMetadata(accessToken) {
   });
 
   if (!res.ok) {
-    throw new Error(`Failed to get sheet metadata: ${res.status}`);
+    await throwApiError(res, 'getSheetMetadata');
   }
 
   const json = await res.json();
@@ -157,7 +169,7 @@ export async function deleteRow(accessToken, sheetTabId, rowIndex) {
   });
 
   if (!res.ok) {
-    throw new Error(`Failed to delete row: ${res.status}`);
+    await throwApiError(res, 'deleteRow');
   }
 
   return res.json();
@@ -187,7 +199,7 @@ export async function deleteRows(accessToken, sheetTabId, rowIndices) {
   });
 
   if (!res.ok) {
-    throw new Error(`Failed to delete rows: ${res.status}`);
+    await throwApiError(res, 'deleteRows');
   }
 
   return res.json();
