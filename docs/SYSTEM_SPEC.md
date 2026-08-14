@@ -78,24 +78,23 @@ vera-pwa/
 └── src/
     ├── main.jsx                    Renders <App /> into #app, registers service worker
     ├── app.jsx                     Root component; routing, auth gate, view state, filter persistence
-    ├── config.js                   OAuth client ID + secret, spreadsheet ID, scopes, caretaker map
+    ├── config.js                   OAuth client ID, spreadsheet ID, scopes, caretaker map, client secret helpers
     ├── components/
     │   ├── Header.jsx              Sticky header: title, sync badge, image toggle, user avatar, sign out
     │   ├── Dashboard.jsx           Main view: search bar, filter bar, sort modes, plant cards, FAB
     │   ├── PlantCard.jsx           Single plant card: urgency indicator, photo, quick actions, snooze/skip
     │   ├── FilterBar.jsx           Dropdowns for caretaker, event type, location, and sort mode
-    │   ├── PlantDetail.jsx         Full plant info: edit mode, schedules, activity, species guide, propagate
+    │   ├── PlantDetail.jsx         Full plant info: edit mode, schedules, activity, species guide, propagate, MultilineText helper
     │   ├── AddPlantForm.jsx        Two-step form: plant metadata then schedule setup
     │   ├── PhotoCapture.jsx        File input with camera capture, delegates to CropOverlay
-    │   ├── CropOverlay.jsx         Full-screen crop UI with drag/pinch-to-zoom and square frame
-    │   └── MultilineText.jsx       Renders text with preserved newlines (white-space: pre-wrap)
+    │   └── CropOverlay.jsx         Full-screen crop UI with drag/pinch-to-zoom and square frame
     ├── hooks/
     │   ├── useGoogleAuth.js        GIS code client, auth code exchange, refresh token persistence, auto-refresh
     │   └── useSheetsData.js        Data fetching, CRUD operations, optimistic updates, computed state
     ├── services/
     │   ├── sheets.js               Google Sheets API wrapper (batchGet, append, update, delete)
-    │   ├── drive.js                Google Drive upload, public sharing, thumbnail URL helper
-    │   └── cache.js                localStorage get/set with versioning
+    │   ├── drive.js                Google Drive upload, public sharing, thumbnail URL helpers (full + thumb)
+    │   └── cache.js                localStorage get/set with versioning, cache timestamp helper
     ├── utils/
     │   └── scheduleEngine.js       Schedule status computation, plant grouping/sorting
     └── styles/
@@ -106,7 +105,8 @@ vera-pwa/
 
 ### 4.1 Flow
 
-1. **On Mount** (`useGoogleAuth.js`): Checks localStorage for an existing refresh token (`vera-pwa-refresh-token`). If found, exchanges it for a fresh access token via Google's token endpoint. UI shows "Signing in..." during this process. If the refresh fails (token revoked), clears storage and shows the login button.
+0. **First-Run Setup** (`app.jsx`): If no client secret is found in localStorage (`vera-pwa-client-secret`), the app displays a setup screen prompting the user to enter the OAuth client secret. Once entered, it is persisted in localStorage and the app proceeds to the auth flow.
+1. **On Mount** (`useGoogleAuth.js`): Checks localStorage for an existing refresh token (`vera-pwa-refresh-token`). If found, exchanges it for a fresh access token via Google's token endpoint using the stored client secret. UI shows "Signing in..." during this process. If the refresh fails (token revoked), clears storage and shows the login button.
 2. **Sign In**: Uses `google.accounts.oauth2.initCodeClient()` (authorization code flow) with:
    - `client_id`: `988681646813-lh48egqaqajdapkm1mpjlimbba5pi2au.apps.googleusercontent.com`
    - `scope`: `openid email profile https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.file`
@@ -122,6 +122,7 @@ vera-pwa/
 
 | Key | Value | Purpose |
 |-----|-------|---------|
+| `vera-pwa-client-secret` | OAuth2 client secret string | Entered once on first launch; used for code exchange and token refresh |
 | `vera-pwa-refresh-token` | OAuth2 refresh token string | Persistent login across sessions (exchanged for access tokens) |
 | `vera-pwa-user` | JSON `{ email, name, picture }` | Display user info immediately while token refresh is in progress |
 
@@ -217,6 +218,7 @@ All parsers skip the header row (index 0).
 - **Write**: After every successful `fetchAllData()`
 - **Invalidation**: If stored `version !== CACHE_VERSION`, cache is treated as missing
 - **Failure**: Silently catches localStorage errors (quota exceeded, private browsing)
+- **Helpers**: `getCacheTimestamp()` returns the stored timestamp (or null) for display purposes
 
 ### 5.3 Optimistic Updates (`src/hooks/useSheetsData.js`)
 
@@ -356,9 +358,11 @@ RETURN array of { plant, schedules, maxOverdue, _dueEventType }
 - `onAddPlant: () => void` — navigate to add plant form
 - `filterType: string` — current event type filter
 - `filterLocation: string` — current location filter
+- `filterCaretaker: string` — `'mine'` or `'all'`
 - `search: string` — current search text
 - `onFilterTypeChange: (value) => void`
 - `onFilterLocationChange: (value) => void`
+- `onFilterCaretakerChange: (value) => void`
 - `onSearchChange: (value) => void`
 - `sortBy: string` — current sort mode
 - `onSortChange: (value) => void`
@@ -476,12 +480,12 @@ RETURN array of { plant, schedules, maxOverdue, _dueEventType }
 
 **Responsibility:** Full-screen overlay with a square crop frame (85vw, centered). User drags to pan and pinches to zoom the image behind the frame. On confirm, calculates the source rectangle in original image coordinates, draws to canvas at max 1200x1200, exports as JPEG at 85% quality. Uses CSS transforms for GPU-accelerated rendering. Handles touch events (single-finger drag, two-finger pinch) and mouse events (drag, scroll wheel zoom).
 
-### 7.9 MultilineText (`src/components/MultilineText.jsx`)
+### 7.9 MultilineText (local function in `src/components/PlantDetail.jsx`)
 
 **Props:**
 - `text: string` — raw text content (may contain newlines)
 
-**Responsibility:** Renders text with preserved line breaks using `white-space: pre-wrap` styling. Used for Notes and care fields (Light, Water, Humidity, Fertilizing) in PlantDetail so that multiline content entered in the spreadsheet or form is displayed with proper line breaks rather than collapsed into a single line.
+**Responsibility:** Renders text with preserved line breaks by splitting on `\n` and inserting `<br />` elements between lines. Used for Notes and care fields (Light, Water, Humidity, Fertilizing) in PlantDetail so that multiline content entered in the spreadsheet or form is displayed with proper line breaks rather than collapsed into a single line. Defined as a local helper function within PlantDetail rather than a standalone component file.
 
 ## 8. Google Drive Integration
 
@@ -513,11 +517,14 @@ RETURN array of { plant, schedules, maxOverdue, _dueEventType }
 ### 8.2 Photo Display
 
 ```javascript
-// drive.js: getPhotoUrl(fileId)
+// drive.js: getPhotoUrl(fileId) — full-size for detail view
 `https://drive.google.com/thumbnail?id=${fileId}&sz=w800`
+
+// drive.js: getPhotoThumbUrl(fileId) — small thumbnail for dashboard cards
+`https://drive.google.com/thumbnail?id=${fileId}&sz=w200`
 ```
 
-This URL returns a publicly accessible thumbnail at 800px width. It works because the upload flow adds a public reader permission to each uploaded file.
+These URLs return publicly accessible thumbnails at 800px and 200px width respectively. They work because the upload flow adds a public reader permission to each uploaded file.
 
 ## 9. PWA Configuration
 
@@ -669,9 +676,6 @@ export const CONFIG = {
   // OAuth Client ID from GCP Console
   OAUTH_CLIENT_ID: 'YOUR_CLIENT_ID.apps.googleusercontent.com',
 
-  // OAuth Client Secret from GCP Console (required for authorization code flow)
-  OAUTH_CLIENT_SECRET: 'GOCSPX-xxxxxxxxxxxxxxxxxxxxxxxx',
-
   // Spreadsheet ID from the Google Sheet URL
   SPREADSHEET_ID: 'YOUR_SPREADSHEET_ID',
 
@@ -686,7 +690,11 @@ export const CONFIG = {
 };
 ```
 
-Note: The client secret is included in the client-side code because this app uses the authorization code flow to obtain refresh tokens for persistent login. This is acceptable for personal-use apps with a limited user base. The OAuth consent screen's "authorized users" list provides the access control.
+**Client Secret Handling:**
+
+The OAuth client secret is NOT stored in source code. Instead, `src/config.js` exports `getClientSecret()` and `setClientSecret()` helpers that read/write the secret from localStorage under the key `vera-pwa-client-secret`. On first launch, the app displays a setup screen prompting the user to enter the client secret, which is then persisted in localStorage for subsequent sessions. This avoids committing the secret to the repository while keeping the app fully client-side.
+
+Note: The client secret is used client-side because this app uses the authorization code flow to obtain refresh tokens for persistent login. This is acceptable for personal-use apps with a limited user base. The OAuth consent screen's "authorized users" list provides the access control.
 
 ### 11.6 Production Build and Deployment
 

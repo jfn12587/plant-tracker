@@ -570,13 +570,13 @@ export function PlantDetail({ plant, data, onBack, onAction, onRemove, onPropaga
                       : 'Never done'}
                   </span>
                   <div class="schedule-actions">
-                    <button class="btn btn-action btn-done" onClick={() => onAction('Done')}>
+                    <button class="btn btn-action btn-done" onClick={() => data.logEvent(currentPlant.id, s.eventType, 'Done')}>
                       ✓
                     </button>
-                    <button class="btn btn-action btn-snooze" onClick={() => onAction('Snoozed')}>
+                    <button class="btn btn-action btn-snooze" onClick={() => data.logEvent(currentPlant.id, s.eventType, 'Snoozed')}>
                       ⏰
                     </button>
-                    <button class="btn btn-action btn-skip" onClick={() => onAction('Skipped')}>
+                    <button class="btn btn-action btn-skip" onClick={() => data.logEvent(currentPlant.id, s.eventType, 'Skipped')}>
                       ⏭
                     </button>
                     <button

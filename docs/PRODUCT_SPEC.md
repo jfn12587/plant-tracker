@@ -17,6 +17,7 @@ The core value proposition is answering one question every day: **"Which plants 
 
 ### Authentication and Identity
 
+- On first launch, the app prompts the user to enter the OAuth client secret (stored in localStorage, never committed to source code)
 - Users authenticate via Google Sign-In (Google Identity Services OAuth2 authorization code flow)
 - OAuth scopes: `openid email profile https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.file`
 - A static **caretaker map** in `src/config.js` resolves Google email addresses to display names

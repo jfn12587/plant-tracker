@@ -16,6 +16,7 @@ import { computeScheduleStatus, groupByPlant } from '../utils/scheduleEngine.js'
 export function useSheetsData(accessToken) {
   const [raw, setRaw] = useState(null);
   const [syncStatus, setSyncStatus] = useState('idle');
+  const [syncError, setSyncError] = useState(null);
 
   useEffect(() => {
     const cached = getCachedData();
@@ -29,9 +30,15 @@ export function useSheetsData(accessToken) {
     refresh();
   }, [accessToken]);
 
+  const setError = (operation, err) => {
+    setSyncStatus('error');
+    setSyncError({ operation, message: err.message, stack: err.stack, time: new Date().toISOString() });
+  };
+
   const refresh = useCallback(async () => {
     if (!accessToken) return;
     setSyncStatus('syncing');
+    setSyncError(null);
     try {
       const data = await fetchAllData(accessToken);
       setRaw(data);
@@ -39,7 +46,7 @@ export function useSheetsData(accessToken) {
       setSyncStatus('synced');
     } catch (err) {
       console.error('Fetch failed:', err);
-      setSyncStatus('error');
+      setError('fetchAllData', err);
     }
   }, [accessToken]);
 
@@ -59,7 +66,7 @@ export function useSheetsData(accessToken) {
         setSyncStatus('synced');
       } catch (err) {
         console.error('Failed to log event:', err);
-        setSyncStatus('error');
+        setError('logEvent', err);
       }
     },
     [accessToken, raw]
@@ -96,7 +103,7 @@ export function useSheetsData(accessToken) {
         return fileId;
       } catch (err) {
         console.error('Photo upload failed:', err);
-        setSyncStatus('error');
+        setError('uploadPlantPhoto', err);
         throw err;
       }
     },
@@ -158,7 +165,7 @@ export function useSheetsData(accessToken) {
         return newPlant;
       } catch (err) {
         console.error('Failed to add plant:', err);
-        setSyncStatus('error');
+        setError('addPlant', err);
         throw err;
       }
     },
@@ -202,7 +209,7 @@ export function useSheetsData(accessToken) {
         setSyncStatus('synced');
       } catch (err) {
         console.error('Failed to update plant:', err);
-        setSyncStatus('error');
+        setError('updatePlant', err);
         throw err;
       }
     },
@@ -241,7 +248,7 @@ export function useSheetsData(accessToken) {
         setSyncStatus('synced');
       } catch (err) {
         console.error('Failed to remove plant:', err);
-        setSyncStatus('error');
+        setError('removePlant', err);
         throw err;
       }
     },
@@ -261,7 +268,7 @@ export function useSheetsData(accessToken) {
         setSyncStatus('synced');
       } catch (err) {
         console.error('Failed to add schedule:', err);
-        setSyncStatus('error');
+        setError('addSchedule', err);
         throw err;
       }
     },
@@ -292,7 +299,7 @@ export function useSheetsData(accessToken) {
         setSyncStatus('synced');
       } catch (err) {
         console.error('Failed to update schedule:', err);
-        setSyncStatus('error');
+        setError('updateSchedule', err);
         throw err;
       }
     },
@@ -321,7 +328,7 @@ export function useSheetsData(accessToken) {
         setSyncStatus('synced');
       } catch (err) {
         console.error('Failed to remove schedule:', err);
-        setSyncStatus('error');
+        setError('removeSchedule', err);
         throw err;
       }
     },
@@ -353,7 +360,7 @@ export function useSheetsData(accessToken) {
         setSyncStatus('synced');
       } catch (err) {
         console.error('Failed to delete event:', err);
-        setSyncStatus('error');
+        setError('deleteEvent', err);
       }
     },
     [accessToken, raw]
@@ -390,7 +397,7 @@ export function useSheetsData(accessToken) {
         setSyncStatus('synced');
       } catch (err) {
         console.error('Failed to update event:', err);
-        setSyncStatus('error');
+        setError('updateEvent', err);
       }
     },
     [accessToken, raw]
@@ -409,6 +416,7 @@ export function useSheetsData(accessToken) {
   return {
     ...computed,
     syncStatus,
+    syncError,
     refresh,
     logEvent,
     addPlant,

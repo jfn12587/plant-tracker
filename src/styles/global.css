@@ -104,6 +104,53 @@ body {
   color: var(--red);
 }
 
+.error-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.error-modal {
+  background: #fff;
+  border-radius: var(--radius);
+  padding: 20px;
+  max-width: 95vw;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
+}
+
+.error-modal h3 {
+  margin: 0 0 12px;
+  color: var(--red);
+}
+
+.error-detail p {
+  margin: 4px 0;
+  font-size: 0.875rem;
+  word-break: break-word;
+}
+
+.error-stack {
+  font-size: 0.75rem;
+  background: #f5f5f5;
+  padding: 12px;
+  border-radius: 4px;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 40vh;
+  margin-top: 8px;
+}
+
 /* Buttons */
 .btn {
   border: none;

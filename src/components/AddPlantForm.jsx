@@ -19,6 +19,7 @@ export function AddPlantForm({ data, onSubmit, onAddSchedule, onCancel, defaultV
 
   // Schedule management after adding plant
   const [plantAdded, setPlantAdded] = useState(false);
+  const [plantId, setPlantId] = useState(null);
   const [schedules, setSchedules] = useState([]);
   const [schedEventType, setSchedEventType] = useState('');
   const [schedCadence, setSchedCadence] = useState('');
@@ -48,7 +49,7 @@ export function AddPlantForm({ data, onSubmit, onAddSchedule, onCancel, defaultV
 
     setSubmitting(true);
     try {
-      await onSubmit({
+      const newPlant = await onSubmit({
         name: name.trim(),
         species,
         caretaker,
@@ -61,6 +62,7 @@ export function AddPlantForm({ data, onSubmit, onAddSchedule, onCancel, defaultV
         humidity: humidity.trim(),
         fertilizing: fertilizing.trim(),
       });
+      setPlantId(newPlant?.id || null);
       setPlantAdded(true);
     } catch (err) {
       console.error('Failed to add plant:', err);
@@ -70,9 +72,9 @@ export function AddPlantForm({ data, onSubmit, onAddSchedule, onCancel, defaultV
   };
 
   const handleAddSchedule = async () => {
-    if (!schedEventType || !schedCadence) return;
+    if (!schedEventType || !schedCadence || !plantId) return;
     try {
-      await data.addSchedule(name.trim(), parseInt(schedCadence, 10), schedEventType);
+      await onAddSchedule(plantId, parseInt(schedCadence, 10), schedEventType);
       setSchedules((prev) => [
         ...prev,
         { eventType: schedEventType, cadence: parseInt(schedCadence, 10) },

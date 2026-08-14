@@ -106,7 +106,7 @@ export function App() {
   };
 
   const handleAddPlantSubmit = async (plantData) => {
-    await data.addPlant(plantData);
+    return await data.addPlant(plantData);
   };
 
   const handleRemovePlant = async (plantId) => {
@@ -139,7 +139,7 @@ export function App() {
   if (view === 'addPlant') {
     return (
       <>
-        <Header user={auth.user} onSignOut={auth.signOut} syncStatus={data.syncStatus} showImages={showImages} onToggleImages={() => setShowImages(!showImages)} />
+        <Header user={auth.user} onSignOut={auth.signOut} syncStatus={data.syncStatus} syncError={data.syncError} showImages={showImages} onToggleImages={() => setShowImages(!showImages)} />
         <AddPlantForm
           data={data}
           onSubmit={handleAddPlantSubmit}
@@ -154,7 +154,7 @@ export function App() {
   if (view === 'detail' && selectedPlant) {
     return (
       <>
-        <Header user={auth.user} onSignOut={auth.signOut} syncStatus={data.syncStatus} showImages={showImages} onToggleImages={() => setShowImages(!showImages)} />
+        <Header user={auth.user} onSignOut={auth.signOut} syncStatus={data.syncStatus} syncError={data.syncError} showImages={showImages} onToggleImages={() => setShowImages(!showImages)} />
         <PlantDetail
           plant={selectedPlant}
           data={data}
@@ -170,7 +170,7 @@ export function App() {
 
   return (
     <>
-      <Header user={auth.user} onSignOut={auth.signOut} syncStatus={data.syncStatus} showImages={showImages} onToggleImages={() => setShowImages(!showImages)} />
+      <Header user={auth.user} onSignOut={auth.signOut} syncStatus={data.syncStatus} syncError={data.syncError} showImages={showImages} onToggleImages={() => setShowImages(!showImages)} />
       <Dashboard
         data={data}
         caretaker={auth.caretaker}
