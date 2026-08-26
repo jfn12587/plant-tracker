@@ -99,15 +99,18 @@ From either the Dashboard card or the Plant Detail view, users can take actions 
 | **Snoozed** | Clock | Pushes next due to 2 days from now |
 | **Skipped** | Fast-forward | Extends the cycle by one additional cadence period per skip |
 
-Each action appends a row to the Events sheet with: plant ID, ISO timestamp, event type, and outcome.
+Each action appends a row to the Events sheet with: plant ID, ISO timestamp, event type, outcome, and optional notes.
 
 ### 3.5 Log Ad-Hoc Events
 
 From the Plant Detail view, users can log events that occur outside of any schedule:
 1. Click "+ Log Event"
-2. Select any event type from the dropdown (includes all types from the Event Types sheet)
+2. Select any event type from the dropdown (includes all types from the Event Types sheet), or select "Other..." to enter a custom event type name
 3. Optionally select a back-date via the date picker (defaults to current time if omitted)
-4. Click "Log Done" to record a Done event
+4. Optionally enter notes for the event (free-text context about what was done)
+5. Click "Log Done" to record a Done event
+
+When "Other..." is selected, a text input appears for the custom type name. On submit, the new event type is automatically persisted to the Event Types sheet so it appears in all future dropdowns across all plants.
 
 This supports tracking activities like repotting or pest treatment that may not have a recurring schedule, and allows recording events that happened in the past.
 
@@ -188,10 +191,12 @@ From the Plant Detail Care Schedule section:
 The Activity section on the Plant Detail page shows a comprehensive history for the plant:
 - Lists every event type that has been recorded for the plant (not just scheduled types)
 - For each event type: last completed date, total event count, and cadence (if scheduled)
+- If an event type has notes on any of its events, a toggle button appears showing the note count; clicking it expands a list of notes with their dates
 - Provides context for ad-hoc events alongside scheduled ones
 - A "Show All" button expands a full event table showing every individual event (newest first) with:
   - Timestamp, event type, and outcome columns
-  - Edit button: allows inline editing of event type and outcome
+  - A "Show Notes" toggle (visible when any event has notes) adds a Notes column to the table
+  - Edit button: allows inline editing of event type, outcome, and notes
   - Delete button: removes the event from the Events sheet
 - The table can be collapsed again with "Hide All"
 
@@ -231,8 +236,9 @@ The ID field uses the format `P` followed by a zero-padded three-digit number. W
 | B | Timestamp | ISO 8601 timestamp of the event |
 | C | Event Type | Type of care event (references Event Types) |
 | D | Outcome | One of: `Done`, `Snoozed`, `Skipped` |
+| E | Notes | Optional free-text notes about the event |
 
-Events are primarily append-only but can be individually edited (event type, outcome) or deleted via the "Show All" event table in the Plant Detail view.
+Events are primarily append-only but can be individually edited (event type, outcome, notes) or deleted via the "Show All" event table in the Plant Detail view.
 
 ### 4.3 Schedules (Sheet Tab)
 
@@ -250,7 +256,7 @@ A plant can have multiple schedules (e.g., Water every 7 days, Fertilize every 3
 |--------|-------|-------------|
 | A | Name | Event type name (e.g., Water, Fertilize, Rotate, Dust, Repot) |
 
-This is a reference list used to populate dropdowns throughout the UI.
+This is a reference list used to populate dropdowns throughout the UI. New custom event types created via the "Other..." option in the Log Event form are automatically appended to this sheet.
 
 ### 4.5 Species (Sheet Tab)
 

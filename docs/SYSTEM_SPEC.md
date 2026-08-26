@@ -168,7 +168,7 @@ https://sheets.googleapis.com/v4/spreadsheets/16KzR3l0V6-aQe7Lus5eEsnR8Y0ncoW7YG
 | Function | HTTP Method | Endpoint | Purpose |
 |----------|-------------|----------|---------|
 | `fetchAllData(token)` | GET | `/values:batchGet?ranges=...` | Fetches all 5 tabs in a single request |
-| `appendEvent(token, plantId, eventType, outcome, timestamp)` | POST | `/values/Events!A:D:append` | Appends a new event row |
+| `appendEvent(token, plantId, eventType, outcome, timestamp, notes)` | POST | `/values/Events!A:E:append` | Appends a new event row |
 | `appendRow(token, sheetName, values)` | POST | `/values/{sheet}!A:Z:append` | Generic row append (Inventory, Schedules) |
 | `updateCell(token, range, value)` | PUT | `/values/{range}` | Updates a single cell (photo ID) |
 | `updateRow(token, range, values)` | PUT | `/values/{range}` | Updates a full row (plant edit, schedule cadence) |
@@ -180,7 +180,7 @@ https://sheets.googleapis.com/v4/spreadsheets/16KzR3l0V6-aQe7Lus5eEsnR8Y0ncoW7YG
 
 `fetchAllData` fetches five ranges in a single batchGet call:
 - `Inventory!A:M` (13 columns, includes ID and care fields)
-- `Events!A:D`
+- `Events!A:E` (5 columns, includes notes)
 - `Schedules!A:C`
 - `Event Types!A:A`
 - `Species!A:L`
@@ -189,7 +189,7 @@ https://sheets.googleapis.com/v4/spreadsheets/16KzR3l0V6-aQe7Lus5eEsnR8Y0ncoW7YG
 
 Raw sheet values are parsed into typed objects by helper functions:
 - `parseInventory(rows)` — maps columns A-M to `{ id, name, species, caretaker, location, acquiredDate, photo, pot, notes, light, water, humidity, fertilizing }`
-- `parseEvents(rows)` — maps columns A-D to `{ plantId, timestamp, eventType, outcome }`
+- `parseEvents(rows)` — maps columns A-E to `{ plantId, timestamp, eventType, outcome, notes }`
 - `parseSchedules(rows)` — maps columns A-C to `{ plantId, cadence (int), eventType }`
 - `parseEventTypes(rows)` — extracts column A as a flat string array
 - `parseSpecies(rows)` — maps columns A-L to `{ name, scientificName, family, light, water, humidity, temperature, food, toxicity, petFriendly, additionalCare, commonIssues }`
@@ -229,7 +229,8 @@ Write operations follow this pattern:
 4. Do NOT revert optimistic state on failure (user sees error badge)
 
 Operations with optimistic updates:
-- `logEvent` — appends to `raw.events` (supports optional timestamp for back-dating)
+- `logEvent` — appends to `raw.events` (supports optional timestamp for back-dating and optional notes)
+- `addEventType` — appends a custom event type to `raw.eventTypes` and the Event Types sheet (deduplicates)
 - `addPlant` — appends to `raw.inventory` with auto-generated ID
 - `updatePlant` — maps over `raw.inventory` to update editable fields; writes to `Inventory!A{row}:M{row}`
 - `removePlant` — filters from `raw.inventory` and `raw.schedules`
@@ -239,7 +240,7 @@ Operations with optimistic updates:
 - `updatePlantPhoto` — maps over `raw.inventory` to update photo field
 - `uploadPlantPhoto` — uploads file to Drive, then calls `updatePlantPhoto`
 - `deleteEvent` — finds event by plant-relative index, deletes row from Events sheet, filters from `raw.events`
-- `updateEvent` — finds event by plant-relative index, updates row in Events sheet (event type, outcome), maps over `raw.events`
+- `updateEvent` — finds event by plant-relative index, updates row in Events sheet (event type, outcome, notes), maps over `raw.events`
 
 ### 5.4 Unique ID Generation
 
@@ -613,9 +614,9 @@ The app is served at `https://<username>.github.io/plant-tracker/` with all asse
 | ID | Name | Species | Caretaker | Location | Acquired Date | Photo | Pot | Notes | Light | Water | Humidity | Fertilizing |
 
 **Tab: Events**
-| A | B | C | D |
-|---|---|---|---|
-| Plant ID | Timestamp | Event Type | Outcome |
+| A | B | C | D | E |
+|---|---|---|---|---|
+| Plant ID | Timestamp | Event Type | Outcome | Notes |
 
 **Tab: Schedules**
 | A | B | C |
