@@ -20,7 +20,7 @@ export function Header({ user, onSignOut, syncStatus, syncError, showImages, onT
         <button
           class={`btn btn-small btn-toggle-images ${showImages ? 'active' : ''}`}
           onClick={onToggleImages}
-          title={showImages ? 'Hide images' : 'Show images'}
+          title={showImages ? 'Small thumbnails' : 'Large images'}
         >
           {showImages ? '🖼' : '🖼̸'}
         </button>

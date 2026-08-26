@@ -329,7 +329,7 @@ RETURN array of { plant, schedules, maxOverdue, _dueEventType }
 - `filterCaretaker` — `'mine'` (default) or `'all'` (persists across navigation)
 - `search` — search bar text (persists across navigation)
 - `sortBy` — sort mode: `'urgency'`, `'name'`, `'location'`, or `'acquired'` (persists across navigation)
-- `showImages` — boolean toggle for dashboard thumbnails
+- `showImages` — boolean toggle for large dashboard images (thumbnails always show; this switches to full-width hero)
 
 **Browser History Integration:**
 - Pushes history state on navigation to detail/addPlant views
@@ -344,7 +344,7 @@ RETURN array of { plant, schedules, maxOverdue, _dueEventType }
 - `user: { email, name, picture }` — signed-in user
 - `onSignOut: () => void` — sign out handler
 - `syncStatus: 'idle' | 'syncing' | 'synced' | 'error'` — current sync state
-- `showImages: boolean` — current image toggle state
+- `showImages: boolean` — current image size toggle state
 - `onToggleImages: () => void` — toggle image visibility
 
 **Responsibility:** Sticky top bar with app title, sync status badge, image toggle button, user avatar, and sign-out button.
@@ -367,7 +367,7 @@ RETURN array of { plant, schedules, maxOverdue, _dueEventType }
 - `onSearchChange: (value) => void`
 - `sortBy: string` — current sort mode
 - `onSortChange: (value) => void`
-- `showImages: boolean` — whether to show thumbnails
+- `showImages: boolean` — whether to show large hero images (thumbnails always show)
 
 **Local State:**
 - `showBackToTop` — visibility of the back-to-top button (appears after 400px scroll)
@@ -386,7 +386,7 @@ RETURN array of { plant, schedules, maxOverdue, _dueEventType }
 - `onSelect: () => void` — tap handler for navigation
 - `onAction: (plantId, eventType, outcome) => void` — quick action buttons
 - `lastWatered: string | null` — formatted "Xd ago" text
-- `showImages: boolean` — whether to show thumbnail
+- `showImages: boolean` — whether to show large hero image on card
 
 **Responsibility:** Single plant card with urgency color coding (immediate/overdue/today/upcoming), thumbnail, name, location, last-watered tag, due info, and two rows of action buttons:
 - Row 1: Water/Fertilize/Repot quick actions (always shown)

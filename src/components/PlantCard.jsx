@@ -1,4 +1,4 @@
-import { getPhotoThumbUrl } from '../services/drive.js';
+import { getPhotoThumbUrl, getPhotoUrl } from '../services/drive.js';
 
 export function PlantCard({ entry, onSelect, onAction, lastWatered, showImages }) {
   const { plant, schedules, maxOverdue, _dueEventType } = entry;
@@ -27,11 +27,13 @@ export function PlantCard({ entry, onSelect, onAction, lastWatered, showImages }
 
   const hasSchedule = schedules && schedules.length > 0;
 
-  const thumbUrl = showImages && plant.photo ? getPhotoThumbUrl(plant.photo) : null;
+  const thumbUrl = plant.photo ? getPhotoThumbUrl(plant.photo) : null;
+  const largeUrl = showImages && plant.photo ? getPhotoUrl(plant.photo) : null;
 
   return (
-    <div class={`plant-card ${urgencyClass}`} onClick={onSelect}>
-      {thumbUrl && <img src={thumbUrl} alt="" class="plant-card-thumb" loading="lazy" onError={(e) => e.target.style.display='none'} />}
+    <div class={`plant-card ${urgencyClass} ${largeUrl ? 'plant-card-large-img' : ''}`} onClick={onSelect}>
+      {largeUrl && <img src={largeUrl} alt="" class="plant-card-hero" loading="lazy" onError={(e) => e.target.style.display='none'} />}
+      {!largeUrl && thumbUrl && <img src={thumbUrl} alt="" class="plant-card-thumb" loading="lazy" onError={(e) => e.target.style.display='none'} />}
       <div class="plant-card-info">
         <div class="plant-card-name">{plant.name}</div>
         <div class="plant-card-meta">

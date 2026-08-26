@@ -54,7 +54,7 @@ Each plant card shows:
 - "Last watered" tag showing how many days since last watering (e.g., "today", "3d ago")
 - Most urgent event type and urgency label (e.g., "Water — 3d overdue")
 - Color-coded left border: red (overdue/never done), yellow (due today), green (upcoming), neutral (unscheduled)
-- Thumbnail photo (when image toggle is active)
+- Thumbnail photo (small by default; full-width when image toggle is active)
 - Quick action buttons: Water, Fertilize, Repot
 - Snooze/Skip buttons (second row, only for scheduled plants)
 
@@ -78,7 +78,7 @@ All filter and sort state persists across navigation to detail/add views and bac
 
 ### 3.3 Image Toggle
 
-A button in the header toggles thumbnail visibility on the dashboard. When active, plant cards display a small photo if available. The detail page always shows the full plant photo regardless of this toggle.
+A button in the header toggles image size on the dashboard. Plant cards always show a small thumbnail (44x44px) when a photo is available. When the toggle is active, cards instead display a full-width hero image (800px source, max 200px tall, cropped to cover). The detail page always shows the full plant photo regardless of this toggle.
 
 ### 3.4 Take Action on Scheduled Care
 
@@ -176,7 +176,7 @@ From the Plant Detail Care Schedule section:
 
 ### 3.11 Take and View Photos
 
-- **View:** If a plant has a photo file ID stored in the Inventory sheet, the detail view always shows the image via Google Drive thumbnail URL. Dashboard cards show thumbnails when the image toggle is active.
+- **View:** If a plant has a photo file ID stored in the Inventory sheet, the detail view always shows the image via Google Drive thumbnail URL. Dashboard cards always show a small thumbnail; the image toggle switches them to full-width hero images.
 - **Capture/Upload:** The PhotoCapture component provides a file input with `capture="environment"` for mobile camera access. The file picker is hidden when a photo already exists, unless the user is in edit mode (to allow replacing the photo). After capture:
   1. A full-screen **crop overlay** appears, showing the image with a square crop frame
   2. The user can **drag** (pan) the image and **pinch to zoom** to frame the subject
