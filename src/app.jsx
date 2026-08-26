@@ -50,7 +50,7 @@ export function App() {
   const [filterCaretaker, setFilterCaretaker] = useState('mine');
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState('urgency');
-  const [showImages, setShowImages] = useState(true);
+  const [showImages, setShowImages] = useState(false);
 
   // Scroll to top when navigating to detail or addPlant
   useEffect(() => {
