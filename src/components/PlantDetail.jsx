@@ -14,11 +14,16 @@ export function PlantDetail({ plant, data, onBack, onAction, onRemove, onPropaga
   const [newSchedCadence, setNewSchedCadence] = useState('');
   const [loggingEvent, setLoggingEvent] = useState(false);
   const [adHocType, setAdHocType] = useState('');
+  const [adHocCustomType, setAdHocCustomType] = useState('');
   const [adHocDate, setAdHocDate] = useState('');
+  const [adHocNotes, setAdHocNotes] = useState('');
   const [showAllEvents, setShowAllEvents] = useState(false);
+  const [showEventNotes, setShowEventNotes] = useState(false);
+  const [expandedActivityNotes, setExpandedActivityNotes] = useState(new Set());
   const [editingEvent, setEditingEvent] = useState(null); // index in plantEvents
   const [editEventType, setEditEventType] = useState('');
   const [editEventOutcome, setEditEventOutcome] = useState('');
+  const [editEventNotes, setEditEventNotes] = useState('');
 
   // Inline editing state
   const [editing, setEditing] = useState(false);
@@ -46,10 +51,13 @@ export function PlantDetail({ plant, data, onBack, onAction, onRemove, onPropaga
   const activityByType = new Map();
   for (const event of plantEvents) {
     if (!activityByType.has(event.eventType)) {
-      activityByType.set(event.eventType, { lastDone: null, count: 0 });
+      activityByType.set(event.eventType, { lastDone: null, count: 0, notes: [] });
     }
     const entry = activityByType.get(event.eventType);
     entry.count++;
+    if (event.notes) {
+      entry.notes.push({ timestamp: event.timestamp, notes: event.notes });
+    }
     if (event.outcome === 'Done') {
       const ts = new Date(event.timestamp);
       if (!entry.lastDone || ts > entry.lastDone) {
@@ -61,11 +69,17 @@ export function PlantDetail({ plant, data, onBack, onAction, onRemove, onPropaga
   const photoUrl = currentPlant.photo ? getPhotoUrl(currentPlant.photo) : null;
 
   const handleLogAdHocEvent = async () => {
-    if (!adHocType) return;
+    const eventType = adHocType === '__other__' ? adHocCustomType.trim() : adHocType;
+    if (!eventType) return;
+    if (adHocType === '__other__' && adHocCustomType.trim()) {
+      await data.addEventType(adHocCustomType.trim());
+    }
     const ts = adHocDate ? new Date(adHocDate + 'T12:00:00').toISOString() : undefined;
-    await data.logEvent(currentPlant.id, adHocType, 'Done', ts);
+    await data.logEvent(currentPlant.id, eventType, 'Done', ts, adHocNotes.trim() || undefined);
     setAdHocType('');
+    setAdHocCustomType('');
     setAdHocDate('');
+    setAdHocNotes('');
     setLoggingEvent(false);
   };
 
@@ -86,18 +100,20 @@ export function PlantDetail({ plant, data, onBack, onAction, onRemove, onPropaga
     setEditingEvent(eventIndex);
     setEditEventType(event.eventType);
     setEditEventOutcome(event.outcome);
+    setEditEventNotes(event.notes || '');
   };
 
   const handleSaveEditEvent = async () => {
     if (editingEvent === null) return;
-    const event = plantEvents[editingEvent];
     await data.updateEvent(currentPlant.id, editingEvent, {
       eventType: editEventType,
       outcome: editEventOutcome,
+      notes: editEventNotes,
     });
     setEditingEvent(null);
     setEditEventType('');
     setEditEventOutcome('');
+    setEditEventNotes('');
   };
 
   const handleEditSchedule = (eventType, cadence) => {
@@ -382,20 +398,49 @@ export function PlantDetail({ plant, data, onBack, onAction, onRemove, onPropaga
           <div class="activity-list">
             {Array.from(activityByType.entries()).map(([type, info]) => {
               const schedule = plantSchedules?.find((s) => s.eventType === type);
+              const hasNotes = info.notes.length > 0;
+              const notesExpanded = expandedActivityNotes.has(type);
               return (
-                <div key={type} class="activity-row">
-                  <span class="activity-type">{type}</span>
-                  <span class="activity-last-done">
-                    {info.lastDone
-                      ? `Last: ${info.lastDone.toLocaleDateString()}`
-                      : 'Never completed'}
-                  </span>
-                  {schedule && (
-                    <span class="activity-schedule">
-                      Every {schedule.cadence}d
+                <div key={type} class="activity-row-group">
+                  <div class="activity-row">
+                    <span class="activity-type">{type}</span>
+                    <span class="activity-last-done">
+                      {info.lastDone
+                        ? `Last: ${info.lastDone.toLocaleDateString()}`
+                        : 'Never completed'}
                     </span>
+                    {schedule && (
+                      <span class="activity-schedule">
+                        Every {schedule.cadence}d
+                      </span>
+                    )}
+                    <span class="activity-count">{info.count} total</span>
+                    {hasNotes && (
+                      <button
+                        class="btn btn-action btn-notes-toggle"
+                        onClick={() => {
+                          setExpandedActivityNotes((prev) => {
+                            const next = new Set(prev);
+                            next.has(type) ? next.delete(type) : next.add(type);
+                            return next;
+                          });
+                        }}
+                        title={notesExpanded ? 'Hide notes' : 'Show notes'}
+                      >
+                        {notesExpanded ? '▾' : '▸'} {info.notes.length}
+                      </button>
+                    )}
+                  </div>
+                  {notesExpanded && (
+                    <div class="activity-notes">
+                      {info.notes.map((n, i) => (
+                        <div key={i} class="activity-note">
+                          <span class="activity-note-date">{new Date(n.timestamp).toLocaleDateString()}</span>
+                          <span class="activity-note-text">{n.notes}</span>
+                        </div>
+                      ))}
+                    </div>
                   )}
-                  <span class="activity-count">{info.count} total</span>
                 </div>
               );
             })}
@@ -415,12 +460,21 @@ export function PlantDetail({ plant, data, onBack, onAction, onRemove, onPropaga
 
         {showAllEvents && (
           <div class="event-table-container">
+            {plantEvents.some((e) => e.notes) && (
+              <button
+                class="btn btn-small btn-notes-toggle-all"
+                onClick={() => setShowEventNotes(!showEventNotes)}
+              >
+                {showEventNotes ? 'Hide Notes' : 'Show Notes'}
+              </button>
+            )}
             <table class="event-table">
               <thead>
                 <tr>
                   <th>Timestamp</th>
                   <th>Event Type</th>
                   <th>Outcome</th>
+                  {showEventNotes && <th>Notes</th>}
                   <th>Actions</th>
                 </tr>
               </thead>
@@ -454,6 +508,17 @@ export function PlantDetail({ plant, data, onBack, onAction, onRemove, onPropaga
                               <option value="Skipped">Skipped</option>
                             </select>
                           </td>
+                          {showEventNotes && (
+                            <td>
+                              <input
+                                type="text"
+                                class="form-input form-input-compact"
+                                value={editEventNotes}
+                                onChange={(e) => setEditEventNotes(e.target.value)}
+                                placeholder="Notes..."
+                              />
+                            </td>
+                          )}
                           <td>
                             <button class="btn btn-small btn-save" onClick={handleSaveEditEvent}>Save</button>
                             <button class="btn btn-small" onClick={() => setEditingEvent(null)}>Cancel</button>
@@ -464,6 +529,7 @@ export function PlantDetail({ plant, data, onBack, onAction, onRemove, onPropaga
                           <td>{new Date(event.timestamp).toLocaleString()}</td>
                           <td>{event.eventType}</td>
                           <td>{event.outcome}</td>
+                          {showEventNotes && <td class="event-notes-cell">{event.notes}</td>}
                           <td>
                             <button
                               class="btn btn-action btn-edit"
@@ -491,7 +557,7 @@ export function PlantDetail({ plant, data, onBack, onAction, onRemove, onPropaga
         )}
 
         {loggingEvent ? (
-          <div class="schedule-add-form">
+          <div class="schedule-add-form log-event-form">
             <select
               value={adHocType}
               onChange={(e) => setAdHocType(e.target.value)}
@@ -501,7 +567,17 @@ export function PlantDetail({ plant, data, onBack, onAction, onRemove, onPropaga
               {(data.eventTypes || []).map((t) => (
                 <option key={t} value={t}>{t}</option>
               ))}
+              <option value="__other__">Other...</option>
             </select>
+            {adHocType === '__other__' && (
+              <input
+                type="text"
+                class="form-input"
+                value={adHocCustomType}
+                onChange={(e) => setAdHocCustomType(e.target.value)}
+                placeholder="Custom event type name"
+              />
+            )}
             <input
               type="date"
               class="form-input"
@@ -509,16 +585,25 @@ export function PlantDetail({ plant, data, onBack, onAction, onRemove, onPropaga
               onChange={(e) => setAdHocDate(e.target.value)}
               placeholder="Date (optional)"
             />
-            <button
-              class="btn btn-small btn-save"
-              onClick={handleLogAdHocEvent}
-              disabled={!adHocType}
-            >
-              Log Done
-            </button>
-            <button class="btn btn-small" onClick={() => setLoggingEvent(false)}>
-              Cancel
-            </button>
+            <textarea
+              class="form-textarea form-textarea-compact"
+              value={adHocNotes}
+              onChange={(e) => setAdHocNotes(e.target.value)}
+              placeholder="Notes (optional)"
+              rows="2"
+            />
+            <div class="log-event-buttons">
+              <button
+                class="btn btn-small btn-save"
+                onClick={handleLogAdHocEvent}
+                disabled={adHocType === '__other__' ? !adHocCustomType.trim() : !adHocType}
+              >
+                Log Done
+              </button>
+              <button class="btn btn-small" onClick={() => setLoggingEvent(false)}>
+                Cancel
+              </button>
+            </div>
           </div>
         ) : (
           <button

@@ -17,7 +17,7 @@ async function throwApiError(res, context) {
 export async function fetchAllData(accessToken) {
   const ranges = [
     'Inventory!A:M',
-    'Events!A:D',
+    'Events!A:E',
     'Schedules!A:C',
     'Event Types!A:A',
     'Species!A:L',
@@ -44,10 +44,10 @@ export async function fetchAllData(accessToken) {
   };
 }
 
-export async function appendEvent(accessToken, plantId, eventType, outcome, timestamp) {
+export async function appendEvent(accessToken, plantId, eventType, outcome, timestamp, notes) {
   const ts = timestamp || new Date().toISOString();
   const res = await fetch(
-    `${BASE_URL}/values/Events!A:D:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`,
+    `${BASE_URL}/values/Events!A:E:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`,
     {
       method: 'POST',
       headers: {
@@ -55,7 +55,7 @@ export async function appendEvent(accessToken, plantId, eventType, outcome, time
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        values: [[plantId, ts, eventType, outcome]],
+        values: [[plantId, ts, eventType, outcome, notes || '']],
       }),
     }
   );
@@ -64,7 +64,7 @@ export async function appendEvent(accessToken, plantId, eventType, outcome, time
     await throwApiError(res, 'appendEvent');
   }
 
-  return { plantId, timestamp: ts, eventType, outcome };
+  return { plantId, timestamp: ts, eventType, outcome, notes: notes || '' };
 }
 
 export async function appendRow(accessToken, sheetName, values) {
@@ -233,6 +233,7 @@ function parseEvents(rows) {
     timestamp: row[1] || '',
     eventType: row[2] || '',
     outcome: row[3] || '',
+    notes: row[4] || '',
   }));
 }
 

@@ -51,22 +51,41 @@ export function useSheetsData(accessToken) {
   }, [accessToken]);
 
   const logEvent = useCallback(
-    async (plantId, eventType, outcome, timestamp) => {
+    async (plantId, eventType, outcome, timestamp, notes) => {
       if (!accessToken || !raw) return;
 
       const ts = timestamp || new Date().toISOString();
-      const newEvent = { plantId, timestamp: ts, eventType, outcome };
+      const newEvent = { plantId, timestamp: ts, eventType, outcome, notes: notes || '' };
       setRaw((prev) => ({
         ...prev,
         events: [...prev.events, newEvent],
       }));
 
       try {
-        await appendEvent(accessToken, plantId, eventType, outcome, timestamp);
+        await appendEvent(accessToken, plantId, eventType, outcome, timestamp, notes);
         setSyncStatus('synced');
       } catch (err) {
         console.error('Failed to log event:', err);
         setError('logEvent', err);
+      }
+    },
+    [accessToken, raw]
+  );
+
+  const addEventType = useCallback(
+    async (eventType) => {
+      if (!accessToken || !raw) return;
+      if (raw.eventTypes.includes(eventType)) return;
+      setRaw((prev) => ({
+        ...prev,
+        eventTypes: [...prev.eventTypes, eventType],
+      }));
+      try {
+        await appendRow(accessToken, 'Event Types', [eventType]);
+        setSyncStatus('synced');
+      } catch (err) {
+        console.error('Failed to add event type:', err);
+        setError('addEventType', err);
       }
     },
     [accessToken, raw]
@@ -380,12 +399,13 @@ export function useSheetsData(accessToken) {
 
         const updated = { ...targetEvent, ...updates };
         const sheetRow = globalIndex + 2; // +1 for header, +1 for 1-indexed
-        const range = `Events!A${sheetRow}:D${sheetRow}`;
+        const range = `Events!A${sheetRow}:E${sheetRow}`;
         await updateRow(accessToken, range, [
           updated.plantId,
           updated.timestamp,
           updated.eventType,
           updated.outcome,
+          updated.notes || '',
         ]);
 
         setRaw((prev) => ({
@@ -419,6 +439,7 @@ export function useSheetsData(accessToken) {
     syncError,
     refresh,
     logEvent,
+    addEventType,
     addPlant,
     updatePlant,
     removePlant,

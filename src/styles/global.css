@@ -553,12 +553,7 @@ body {
   align-items: center;
   gap: 12px;
   padding: 8px 0;
-  border-bottom: 1px solid #eee;
   flex-wrap: wrap;
-}
-
-.activity-row:last-child {
-  border-bottom: none;
 }
 
 .activity-type {
@@ -583,6 +578,77 @@ body {
   font-size: 0.8rem;
   color: var(--text-light);
   margin-left: auto;
+}
+
+.activity-row-group {
+  border-bottom: 1px solid #eee;
+}
+
+.activity-row-group:last-child {
+  border-bottom: none;
+}
+
+.activity-row-group .activity-row {
+  border-bottom: none;
+}
+
+.btn-notes-toggle {
+  font-size: 0.75rem;
+  padding: 2px 6px;
+  background: none;
+  color: var(--text-light);
+}
+
+.activity-notes {
+  padding: 4px 0 8px 16px;
+}
+
+.activity-note {
+  font-size: 0.8rem;
+  padding: 3px 0;
+  display: flex;
+  gap: 8px;
+}
+
+.activity-note-date {
+  color: var(--text-light);
+  white-space: nowrap;
+}
+
+.activity-note-text {
+  color: var(--text);
+}
+
+.btn-notes-toggle-all {
+  margin-bottom: 8px;
+}
+
+.event-notes-cell {
+  font-size: 0.8rem;
+  max-width: 150px;
+  word-break: break-word;
+}
+
+.log-event-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.log-event-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.form-textarea-compact {
+  font-size: 0.85rem;
+  padding: 8px;
+  resize: vertical;
+}
+
+.form-input-compact {
+  font-size: 0.8rem;
+  padding: 4px 6px;
 }
 
 .multiline-text {
