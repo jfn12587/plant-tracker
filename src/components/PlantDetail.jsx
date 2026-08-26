@@ -572,7 +572,7 @@ export function PlantDetail({ plant, data, onBack, onAction, onRemove, onPropaga
               {(data.eventTypes || []).map((t) => (
                 <option key={t} value={t}>{t}</option>
               ))}
-              <option value="__other__">Other...</option>
+              <option value="__other__">Add New Event Type</option>
             </select>
             {adHocType === '__other__' && (
               <input

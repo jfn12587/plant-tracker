@@ -105,12 +105,12 @@ Each action appends a row to the Events sheet with: plant ID, ISO timestamp, eve
 
 From the Plant Detail view, users can log events that occur outside of any schedule:
 1. Click "+ Log Event"
-2. Select any event type from the dropdown (includes all types from the Event Types sheet), or select "Other..." to enter a custom event type name
+2. Select any event type from the dropdown (includes all types from the Event Types sheet), or select "Add New Event Type" to enter a custom event type name
 3. Optionally select a back-date via the date picker (defaults to current time if omitted)
 4. Optionally enter notes for the event (free-text context about what was done)
 5. Click "Log Done" to record a Done event
 
-When "Other..." is selected, a text input appears for the custom type name. On submit, the new event type is automatically persisted to the Event Types sheet so it appears in all future dropdowns across all plants.
+When "Add New Event Type" is selected, a text input appears for the custom type name. On submit, the new event type is automatically persisted to the Event Types sheet so it appears in all future dropdowns across all plants.
 
 This supports tracking activities like repotting or pest treatment that may not have a recurring schedule, and allows recording events that happened in the past.
 
@@ -256,7 +256,7 @@ A plant can have multiple schedules (e.g., Water every 7 days, Fertilize every 3
 |--------|-------|-------------|
 | A | Name | Event type name (e.g., Water, Fertilize, Rotate, Dust, Repot) |
 
-This is a reference list used to populate dropdowns throughout the UI. New custom event types created via the "Other..." option in the Log Event form are automatically appended to this sheet.
+This is a reference list used to populate dropdowns throughout the UI. New custom event types created via the "Add New Event Type" option in the Log Event form are automatically appended to this sheet.
 
 ### 4.5 Species (Sheet Tab)
 
