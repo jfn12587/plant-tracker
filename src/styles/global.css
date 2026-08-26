@@ -619,13 +619,13 @@ body {
   color: var(--text);
 }
 
-.btn-notes-toggle-all {
-  margin-bottom: 8px;
-}
-
-.event-notes-cell {
+.event-notes-row td {
+  padding-top: 0;
+  padding-bottom: 8px;
   font-size: 0.8rem;
-  max-width: 150px;
+  color: var(--text-light);
+  border-top: none;
+  white-space: pre-wrap;
   word-break: break-word;
 }
 

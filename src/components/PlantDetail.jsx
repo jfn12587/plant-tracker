@@ -18,7 +18,7 @@ export function PlantDetail({ plant, data, onBack, onAction, onRemove, onPropaga
   const [adHocDate, setAdHocDate] = useState('');
   const [adHocNotes, setAdHocNotes] = useState('');
   const [showAllEvents, setShowAllEvents] = useState(false);
-  const [showEventNotes, setShowEventNotes] = useState(false);
+  const [expandedEventNotes, setExpandedEventNotes] = useState(new Set());
   const [expandedActivityNotes, setExpandedActivityNotes] = useState(new Set());
   const [editingEvent, setEditingEvent] = useState(null); // index in plantEvents
   const [editEventType, setEditEventType] = useState('');
@@ -460,95 +460,100 @@ export function PlantDetail({ plant, data, onBack, onAction, onRemove, onPropaga
 
         {showAllEvents && (
           <div class="event-table-container">
-            {plantEvents.some((e) => e.notes) && (
-              <button
-                class="btn btn-small btn-notes-toggle-all"
-                onClick={() => setShowEventNotes(!showEventNotes)}
-              >
-                {showEventNotes ? 'Hide Notes' : 'Show Notes'}
-              </button>
-            )}
             <table class="event-table">
               <thead>
                 <tr>
                   <th>Timestamp</th>
                   <th>Event Type</th>
                   <th>Outcome</th>
-                  {showEventNotes && <th>Notes</th>}
                   <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {[...plantEvents].reverse().map((event, reverseIdx) => {
                   const eventIndex = plantEvents.length - 1 - reverseIdx;
-                  return (
+                  const notesExpanded = expandedEventNotes.has(eventIndex);
+                  return editingEvent === eventIndex ? (
                     <tr key={reverseIdx}>
-                      {editingEvent === eventIndex ? (
-                        <>
-                          <td>{new Date(event.timestamp).toLocaleString()}</td>
-                          <td>
-                            <select
-                              class="form-select form-select-compact"
-                              value={editEventType}
-                              onChange={(e) => setEditEventType(e.target.value)}
-                            >
-                              {(data.eventTypes || []).map((t) => (
-                                <option key={t} value={t}>{t}</option>
-                              ))}
-                            </select>
-                          </td>
-                          <td>
-                            <select
-                              class="form-select form-select-compact"
-                              value={editEventOutcome}
-                              onChange={(e) => setEditEventOutcome(e.target.value)}
-                            >
-                              <option value="Done">Done</option>
-                              <option value="Snoozed">Snoozed</option>
-                              <option value="Skipped">Skipped</option>
-                            </select>
-                          </td>
-                          {showEventNotes && (
-                            <td>
-                              <input
-                                type="text"
-                                class="form-input form-input-compact"
-                                value={editEventNotes}
-                                onChange={(e) => setEditEventNotes(e.target.value)}
-                                placeholder="Notes..."
-                              />
-                            </td>
-                          )}
-                          <td>
-                            <button class="btn btn-small btn-save" onClick={handleSaveEditEvent}>Save</button>
-                            <button class="btn btn-small" onClick={() => setEditingEvent(null)}>Cancel</button>
-                          </td>
-                        </>
-                      ) : (
-                        <>
-                          <td>{new Date(event.timestamp).toLocaleString()}</td>
-                          <td>{event.eventType}</td>
-                          <td>{event.outcome}</td>
-                          {showEventNotes && <td class="event-notes-cell">{event.notes}</td>}
-                          <td>
-                            <button
-                              class="btn btn-action btn-edit"
-                              onClick={() => handleStartEditEvent(eventIndex)}
-                              title="Edit"
-                            >
-                              ✎
-                            </button>
-                            <button
-                              class="btn btn-action btn-remove"
-                              onClick={() => handleDeleteEvent(eventIndex)}
-                              title="Delete"
-                            >
-                              ✕
-                            </button>
-                          </td>
-                        </>
-                      )}
+                      <td>{new Date(event.timestamp).toLocaleString()}</td>
+                      <td>
+                        <select
+                          class="form-select form-select-compact"
+                          value={editEventType}
+                          onChange={(e) => setEditEventType(e.target.value)}
+                        >
+                          {(data.eventTypes || []).map((t) => (
+                            <option key={t} value={t}>{t}</option>
+                          ))}
+                        </select>
+                      </td>
+                      <td>
+                        <select
+                          class="form-select form-select-compact"
+                          value={editEventOutcome}
+                          onChange={(e) => setEditEventOutcome(e.target.value)}
+                        >
+                          <option value="Done">Done</option>
+                          <option value="Snoozed">Snoozed</option>
+                          <option value="Skipped">Skipped</option>
+                        </select>
+                      </td>
+                      <td>
+                        <input
+                          type="text"
+                          class="form-input form-input-compact"
+                          value={editEventNotes}
+                          onChange={(e) => setEditEventNotes(e.target.value)}
+                          placeholder="Notes..."
+                        />
+                        <button class="btn btn-small btn-save" onClick={handleSaveEditEvent}>Save</button>
+                        <button class="btn btn-small" onClick={() => setEditingEvent(null)}>Cancel</button>
+                      </td>
                     </tr>
+                  ) : (
+                    <>
+                      <tr key={reverseIdx}>
+                        <td>{new Date(event.timestamp).toLocaleString()}</td>
+                        <td>{event.eventType}</td>
+                        <td>{event.outcome}</td>
+                        <td>
+                          {event.notes && (
+                            <button
+                              class="btn btn-action btn-notes-toggle"
+                              onClick={() => {
+                                setExpandedEventNotes((prev) => {
+                                  const next = new Set(prev);
+                                  next.has(eventIndex) ? next.delete(eventIndex) : next.add(eventIndex);
+                                  return next;
+                                });
+                              }}
+                              title={notesExpanded ? 'Hide notes' : 'Show notes'}
+                            >
+                              📝
+                            </button>
+                          )}
+                          <button
+                            class="btn btn-action btn-edit"
+                            onClick={() => handleStartEditEvent(eventIndex)}
+                            title="Edit"
+                          >
+                            ✎
+                          </button>
+                          <button
+                            class="btn btn-action btn-remove"
+                            onClick={() => handleDeleteEvent(eventIndex)}
+                            title="Delete"
+                          >
+                            ✕
+                          </button>
+                        </td>
+                      </tr>
+                      {notesExpanded && (
+                        <tr class="event-notes-row">
+                          <td colSpan="4" class="event-notes-cell">{event.notes}</td>
+                        </tr>
+                      )}
+                    </>
                   );
                 })}
               </tbody>
