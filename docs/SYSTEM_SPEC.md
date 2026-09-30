@@ -376,7 +376,7 @@ RETURN array of { plant, schedules, maxOverdue, _dueEventType }
 - Renders sticky search bar, filter bar, and sorted/grouped plant cards
 - Computes "last watered" for each plant by scanning events
 - Splits plants into urgency sections, alphabetical list, or location groups depending on sort mode
-- Identifies unscheduled plants (no entries in Schedules) and renders them in a separate section with quick action buttons
+- Identifies unscheduled plants (no entries in Schedules) and renders them via `renderUnscheduledCard`, a local card renderer used in every sort mode. It mirrors PlantCard's image logic — `plant-card-thumb` by default, `plant-card-hero` plus the `plant-card-large-img` container class when `showImages` is true — but omits the Snooze/Skip row and shows "No care schedule set" instead of an urgency label
 - Shows FAB for adding plants and back-to-top button on scroll
 
 ### 7.4 PlantCard (`src/components/PlantCard.jsx`)
@@ -417,10 +417,11 @@ RETURN array of { plant, schedules, maxOverdue, _dueEventType }
 - `onAction: (outcome) => void` — log event for the most urgent schedule
 - `onRemove: (plantId) => void` — delete plant
 - `onPropagate: (plant) => void` — propagate plant
-- `showImages: boolean` — (photo always shown on detail regardless)
+- `showImages: boolean` — (photo always shown on detail regardless; detail photo size is controlled by local `photoFull` state, not this prop)
 
 **State:**
 - `showConfirmRemove` — remove confirmation toggle
+- `photoFull` — header photo size toggle; `false` (default) renders `.plant-photo` (300px max height, `object-fit: cover`), `true` adds `.plant-photo-full` (no height cap, `object-fit: contain`). Not persisted; resets on each mount.
 - `editingSchedule` / `editCadence` — inline schedule edit state
 - `addingSchedule` / `newSchedType` / `newSchedCadence` — new schedule form state
 - `loggingEvent` / `adHocType` / `adHocDate` — ad-hoc event logging state with date picker
@@ -429,7 +430,7 @@ RETURN array of { plant, schedules, maxOverdue, _dueEventType }
 - `editingEvent` / `editEventType` / `editEventOutcome` — inline event edit state
 
 **Responsibility:** Full plant information display with all management capabilities:
-- Always shows photo if available; file picker hidden when photo exists (shown in edit mode)
+- Always shows photo if available, with a `.btn-photo-size` Full/Fit button absolutely positioned in the photo container's bottom-right corner; file picker hidden when photo exists (shown in edit mode)
 - Looks up `currentPlant` from `data.inventory` by ID to always reflect latest state (e.g., after photo upload)
 - Edit mode for Name, Location, Caretaker, Pot, Notes, Light, Water, Humidity, Fertilizing fields
 - Propagate button to create a derived plant (copies all care fields)
@@ -518,7 +519,7 @@ RETURN array of { plant, schedules, maxOverdue, _dueEventType }
 ### 8.2 Photo Display
 
 ```javascript
-// drive.js: getPhotoUrl(fileId) — full-size for detail view
+// drive.js: getPhotoUrl(fileId) — full-size for detail view and dashboard hero images
 `https://drive.google.com/thumbnail?id=${fileId}&sz=w800`
 
 // drive.js: getPhotoThumbUrl(fileId) — small thumbnail for dashboard cards

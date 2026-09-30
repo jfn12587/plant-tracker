@@ -46,7 +46,7 @@ Both users share a single Google Sheet as the data store. All plants, events, an
 **Dashboard view** displays plants in three sections (when sorted by urgency):
 - **Needs Attention** — plants with at least one schedule that is due today or overdue (daysOverdue >= 0)
 - **Upcoming** — plants whose next care event is in the future (daysOverdue < 0)
-- **No Schedule** — plants with no care schedule assigned, shown with quick action buttons
+- **No Schedule** — plants with no care schedule assigned, shown with quick action buttons (but no Snooze/Skip row). These cards otherwise match scheduled cards, including thumbnail/hero photo behavior.
 
 Each plant card shows:
 - Plant name
@@ -54,7 +54,7 @@ Each plant card shows:
 - "Last watered" tag showing how many days since last watering (e.g., "today", "3d ago")
 - Most urgent event type and urgency label (e.g., "Water — 3d overdue")
 - Color-coded left border: red (overdue/never done), yellow (due today), green (upcoming), neutral (unscheduled)
-- Thumbnail photo (small by default; full-width when image toggle is active)
+- Thumbnail photo (small by default; full-width hero when image toggle is active) — shown whenever the plant has a photo, in all sections and sort modes
 - Quick action buttons: Water, Fertilize, Repot
 - Snooze/Skip buttons (second row, only for scheduled plants)
 
@@ -78,7 +78,11 @@ All filter and sort state persists across navigation to detail/add views and bac
 
 ### 3.3 Image Toggle
 
-A button in the header toggles image size on the dashboard. Plant cards always show a small thumbnail (44x44px) when a photo is available. When the toggle is active, cards instead display a full-width hero image (800px source, max 200px tall, cropped to cover). The detail page always shows the full plant photo regardless of this toggle.
+A button in the header toggles image size on the dashboard. Plant cards always show a small thumbnail (44x44px) when a photo is available — this applies equally to scheduled and unscheduled ("No Schedule") cards. When the toggle is active, cards instead display a full-width hero image (800px source, max 244px tall, scaled to fit so the whole plant is visible). The detail page has its own independent photo size toggle (see 3.3.1); the header toggle does not affect it.
+
+#### 3.3.1 Detail Page Photo Size Toggle
+
+The Plant Detail header photo has a "⤢ Full / ⤡ Fit" button overlaid in its bottom-right corner. By default the photo is capped at 300px tall and cropped to cover. Toggling to Full removes the height cap and scales the image to fit, so the entire plant is visible. The toggle is per-visit state — it resets to the default cropped view each time the detail view is opened.
 
 ### 3.4 Take Action on Scheduled Care
 
@@ -117,7 +121,7 @@ This supports tracking activities like repotting or pest treatment that may not 
 ### 3.6 View Full Plant Detail
 
 Tapping a plant card navigates to the Plant Detail view, which displays:
-- **Photo** — always shown if available, retrieved from Google Drive via thumbnail URL
+- **Photo** — always shown if available, retrieved from Google Drive via thumbnail URL, with a Full/Fit size toggle in its bottom-right corner (see 3.3.1)
 - **Plant name and species**
 - **Edit/Propagate action bar** — buttons to enter edit mode or propagate the plant
 - **Quick action buttons** — Water, Fertilize, Repot at the top of the detail page
@@ -176,7 +180,7 @@ From the Plant Detail Care Schedule section:
 
 ### 3.11 Take and View Photos
 
-- **View:** If a plant has a photo file ID stored in the Inventory sheet, the detail view always shows the image via Google Drive thumbnail URL. Dashboard cards always show a small thumbnail; the image toggle switches them to full-width hero images.
+- **View:** If a plant has a photo file ID stored in the Inventory sheet, the detail view always shows the image via Google Drive thumbnail URL, with a Full/Fit toggle to switch between the cropped 300px-tall view and the uncropped full image. Dashboard cards always show a small thumbnail; the header image toggle switches them to full-width hero images.
 - **Capture/Upload:** The PhotoCapture component provides a file input with `capture="environment"` for mobile camera access. The file picker is hidden when a photo already exists, unless the user is in edit mode (to allow replacing the photo). After capture:
   1. A full-screen **crop overlay** appears, showing the image with a square crop frame
   2. The user can **drag** (pan) the image and **pinch to zoom** to frame the subject

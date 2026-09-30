@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'preact/hooks';
 import { PlantCard } from './PlantCard.jsx';
 import { FilterBar } from './FilterBar.jsx';
-import { getPhotoThumbUrl } from '../services/drive.js';
+import { getPhotoThumbUrl, getPhotoUrl } from '../services/drive.js';
 
 
 export function Dashboard({
@@ -164,14 +164,20 @@ export function Dashboard({
       ).sort(([a], [b]) => a.localeCompare(b))
     : [];
 
-  const renderUnscheduledCard = (item) => (
+  const renderUnscheduledCard = (item) => {
+    const thumbUrl = item.plant.photo ? getPhotoThumbUrl(item.plant.photo) : null;
+    const largeUrl = showImages && item.plant.photo ? getPhotoUrl(item.plant.photo) : null;
+    return (
     <div
       key={item.plant.id}
-      class="plant-card urgency-none"
+      class={`plant-card urgency-none ${largeUrl ? 'plant-card-large-img' : ''}`}
       onClick={() => onSelectPlant(item.plant)}
     >
-      {showImages && item.plant.photo && (
-        <img src={getPhotoThumbUrl(item.plant.photo)} alt="" class="plant-card-thumb" loading="lazy" onError={(e) => e.target.style.display='none'} />
+      {largeUrl && (
+        <img src={largeUrl} alt="" class="plant-card-hero" loading="lazy" onError={(e) => e.target.style.display='none'} />
+      )}
+      {!largeUrl && thumbUrl && (
+        <img src={thumbUrl} alt="" class="plant-card-thumb" loading="lazy" onError={(e) => e.target.style.display='none'} />
       )}
       <div class="plant-card-info">
         <div class="plant-card-name">{item.plant.name}</div>
@@ -191,7 +197,8 @@ export function Dashboard({
         </div>
       </div>
     </div>
-  );
+    );
+  };
 
   const renderUnscheduled = (items) => items.map((plant) => renderUnscheduledCard({ plant, _isUnscheduled: true }));
 

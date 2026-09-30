@@ -702,6 +702,7 @@ body {
 
 /* Photo */
 .plant-photo-container {
+  position: relative;
   margin-bottom: 16px;
   border-radius: var(--radius);
   overflow: hidden;
@@ -713,6 +714,23 @@ body {
   display: block;
   max-height: 300px;
   object-fit: cover;
+}
+
+.plant-photo-full {
+  max-height: none;
+  object-fit: contain;
+}
+
+.btn-photo-size {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  padding: 4px 10px;
+  font-size: 0.8rem;
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  border: none;
 }
 
 .photo-section {

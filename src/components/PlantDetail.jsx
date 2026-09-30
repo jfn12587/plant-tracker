@@ -7,6 +7,7 @@ export function PlantDetail({ plant, data, onBack, onAction, onRemove, onPropaga
   const currentPlant = data.inventory?.find((p) => p.id === plant.id) || plant;
 
   const [showConfirmRemove, setShowConfirmRemove] = useState(false);
+  const [photoFull, setPhotoFull] = useState(false);
   const [editingSchedule, setEditingSchedule] = useState(null);
   const [editCadence, setEditCadence] = useState('');
   const [addingSchedule, setAddingSchedule] = useState(false);
@@ -192,7 +193,18 @@ export function PlantDetail({ plant, data, onBack, onAction, onRemove, onPropaga
 
       {photoUrl && (
         <div class="plant-photo-container">
-          <img src={photoUrl} alt={currentPlant.name} class="plant-photo" />
+          <img
+            src={photoUrl}
+            alt={currentPlant.name}
+            class={photoFull ? 'plant-photo plant-photo-full' : 'plant-photo'}
+          />
+          <button
+            class="btn btn-photo-size"
+            onClick={() => setPhotoFull(!photoFull)}
+            title={photoFull ? 'Fit photo' : 'Show full photo'}
+          >
+            {photoFull ? '⤡ Fit' : '⤢ Full'}
+          </button>
         </div>
       )}
 
