@@ -41,7 +41,10 @@ export function useGoogleAuth() {
     }
   });
 
+  const [gisReady, setGisReady] = useState(false);
+
   const refreshTimerRef = useRef(null);
+  const codeClientRef = useRef(null);
 
   const clearAuthError = useCallback(() => setAuthError(null), []);
 
@@ -186,30 +189,39 @@ export function useGoogleAuth() {
     }
   };
 
-  const signIn = useCallback(() => {
-    setAuthError(null);
-
+  // Build the code client as soon as the GIS library lands, NOT on click.
+  // requestCode() opens a popup, so it has to run synchronously inside the
+  // click handler's user gesture — deferring it to a timer costs us that
+  // gesture and Chrome blocks the popup, which GIS reports as "popup_closed".
+  useEffect(() => {
+    let cancelled = false;
     let waited = 0;
-    const initAndRequest = () => {
+
+    const init = () => {
+      if (cancelled) return;
+
       if (!window.google?.accounts?.oauth2) {
         waited += 100;
-        if (waited > 10000) {
+        if (waited > 15000) {
           setAuthError(
             "Google's sign-in library never loaded. Check your connection, or whether an ad/content blocker is blocking accounts.google.com."
           );
           return;
         }
-        setTimeout(initAndRequest, 100);
+        setTimeout(init, 100);
         return;
       }
 
-      const codeClient = window.google.accounts.oauth2.initCodeClient({
+      codeClientRef.current = window.google.accounts.oauth2.initCodeClient({
         client_id: CONFIG.OAUTH_CLIENT_ID,
         scope: CONFIG.SCOPES,
         ux_mode: 'popup',
         error_callback: (err) => {
+          const type = err?.type || 'unknown error';
           setAuthError(
-            `Google sign-in was not completed: ${err?.type || 'unknown error'}${err?.message ? ` (${err.message})` : ''}`
+            type === 'popup_closed'
+              ? 'The Google sign-in window closed before finishing. If you did not close it yourself, your browser may have blocked the popup — allow popups for this site and try again.'
+              : `Google sign-in was not completed: ${type}${err?.message ? ` (${err.message})` : ''}`
           );
         },
         callback: async (response) => {
@@ -242,10 +254,25 @@ export function useGoogleAuth() {
         },
       });
 
-      codeClient.requestCode();
+      setGisReady(true);
     };
 
-    initAndRequest();
+    init();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const signIn = useCallback(() => {
+    setAuthError(null);
+
+    if (!codeClientRef.current) {
+      setAuthError('Google sign-in is still loading — give it a second and try again.');
+      return;
+    }
+
+    codeClientRef.current.requestCode();
   }, []);
 
   const signOut = useCallback(async () => {
@@ -284,6 +311,7 @@ export function useGoogleAuth() {
     accessToken,
     authError,
     clearAuthError,
+    gisReady,
     user,
     caretaker,
     signIn,

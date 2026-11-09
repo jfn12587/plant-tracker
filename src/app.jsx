@@ -103,8 +103,8 @@ export function App() {
         ) : (
           <>
             <p>Sign in to manage your plants</p>
-            <button class="btn btn-primary" onClick={auth.signIn}>
-              Sign in with Google
+            <button class="btn btn-primary" onClick={auth.signIn} disabled={!auth.gisReady}>
+              {auth.gisReady ? 'Sign in with Google' : 'Loading Google sign-in...'}
             </button>
           </>
         )}
