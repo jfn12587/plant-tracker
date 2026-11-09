@@ -18,3 +18,7 @@ export function getClientSecret() {
 export function setClientSecret(secret) {
   localStorage.setItem(CLIENT_SECRET_KEY, secret);
 }
+
+export function clearClientSecret() {
+  localStorage.removeItem(CLIENT_SECRET_KEY);
+}

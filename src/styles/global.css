@@ -45,6 +45,35 @@ body {
   font-size: 2rem;
 }
 
+.auth-error {
+  max-width: 320px;
+  padding: 12px 14px;
+  border: 1px solid #e0b4b4;
+  border-left: 4px solid #c0392b;
+  border-radius: 6px;
+  background: #fdf3f2;
+  color: #7f231a;
+  text-align: left;
+}
+
+.auth-error-detail {
+  margin: 6px 0 0;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  /* OAuth error strings are long and unbroken; keep them on-screen. */
+  overflow-wrap: anywhere;
+}
+
+.btn-link.auth-reset {
+  background: none;
+  border: none;
+  padding: 4px 8px;
+  font-size: 0.85rem;
+  color: var(--text-muted, #666);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
 /* Header */
 .app-header {
   display: flex;
