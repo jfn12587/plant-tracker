@@ -3,6 +3,28 @@ import { CONFIG, getClientSecret } from '../config.js';
 
 const REFRESH_TOKEN_KEY = 'vera-pwa-refresh-token';
 const USER_STORAGE_KEY = 'vera-pwa-user';
+const OAUTH_STATE_KEY = 'vera-pwa-oauth-state';
+
+const AUTH_ENDPOINT = 'https://accounts.google.com/o/oauth2/v2/auth';
+const TOKEN_ENDPOINT = 'https://oauth2.googleapis.com/token';
+
+// Must match an "Authorized redirect URI" on the OAuth client exactly.
+// BASE_URL is Vite's configured base ('/plant-tracker/'), so this resolves to
+// https://jfn12587.github.io/plant-tracker/ in production and
+// http://localhost:5173/plant-tracker/ in dev.
+function getRedirectUri() {
+  return window.location.origin + import.meta.env.BASE_URL;
+}
+
+function hasOAuthReturn() {
+  const params = new URLSearchParams(window.location.search);
+  return params.has('code') || params.has('error');
+}
+
+function newStateToken() {
+  if (window.crypto?.randomUUID) return window.crypto.randomUUID();
+  return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
 
 // Pull Google's actual error text out of a failed OAuth/API response so the UI
 // can show something more useful than "it didn't work".
@@ -35,16 +57,14 @@ export function useGoogleAuth() {
   });
   const [isRefreshing, setIsRefreshing] = useState(() => {
     try {
-      return !!localStorage.getItem(REFRESH_TOKEN_KEY);
+      return hasOAuthReturn() || !!localStorage.getItem(REFRESH_TOKEN_KEY);
     } catch {
       return false;
     }
   });
 
-  const [gisReady, setGisReady] = useState(false);
-
   const refreshTimerRef = useRef(null);
-  const codeClientRef = useRef(null);
+  const bootstrappedRef = useRef(false);
 
   const clearAuthError = useCallback(() => setAuthError(null), []);
 
@@ -55,14 +75,14 @@ export function useGoogleAuth() {
       throw new Error('No app secret is saved on this device.');
     }
 
-    const res = await fetch('https://oauth2.googleapis.com/token', {
+    const res = await fetch(TOKEN_ENDPOINT, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({
         code,
         client_id: CONFIG.OAUTH_CLIENT_ID,
         client_secret: secret,
-        redirect_uri: 'postmessage',
+        redirect_uri: getRedirectUri(),
         grant_type: 'authorization_code',
       }),
     });
@@ -90,7 +110,7 @@ export function useGoogleAuth() {
     }
 
     try {
-      const res = await fetch('https://oauth2.googleapis.com/token', {
+      const res = await fetch(TOKEN_ENDPOINT, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams({
@@ -141,25 +161,6 @@ export function useGoogleAuth() {
     }
   };
 
-  // On mount: attempt to refresh if we have a stored refresh token
-  useEffect(() => {
-    const refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
-    if (refreshToken) {
-      setIsRefreshing(true);
-      refreshAccessToken().then((token) => {
-        if (token) {
-          fetchUserInfo(token);
-        }
-      });
-    }
-
-    return () => {
-      if (refreshTimerRef.current) {
-        clearTimeout(refreshTimerRef.current);
-      }
-    };
-  }, [refreshAccessToken]);
-
   const fetchUserInfo = async (token) => {
     try {
       const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
@@ -189,90 +190,103 @@ export function useGoogleAuth() {
     }
   };
 
-  // Build the code client as soon as the GIS library lands, NOT on click.
-  // requestCode() opens a popup, so it has to run synchronously inside the
-  // click handler's user gesture — deferring it to a timer costs us that
-  // gesture and Chrome blocks the popup, which GIS reports as "popup_closed".
+  // On mount: either finish a redirect sign-in, or restore the previous
+  // session from the stored refresh token.
   useEffect(() => {
-    let cancelled = false;
-    let waited = 0;
+    if (!bootstrappedRef.current) {
+      bootstrappedRef.current = true;
 
-    const init = () => {
-      if (cancelled) return;
+      const params = new URLSearchParams(window.location.search);
+      const code = params.get('code');
+      const oauthError = params.get('error');
+      const returnedState = params.get('state');
 
-      if (!window.google?.accounts?.oauth2) {
-        waited += 100;
-        if (waited > 15000) {
-          setAuthError(
-            "Google's sign-in library never loaded. Check your connection, or whether an ad/content blocker is blocking accounts.google.com."
-          );
-          return;
+      if (code || oauthError) {
+        let expectedState = null;
+        try {
+          expectedState = localStorage.getItem(OAUTH_STATE_KEY);
+          localStorage.removeItem(OAUTH_STATE_KEY);
+        } catch {
+          // storage unavailable; handled as a state mismatch below
         }
-        setTimeout(init, 100);
-        return;
-      }
 
-      codeClientRef.current = window.google.accounts.oauth2.initCodeClient({
-        client_id: CONFIG.OAUTH_CLIENT_ID,
-        scope: CONFIG.SCOPES,
-        ux_mode: 'popup',
-        error_callback: (err) => {
-          const type = err?.type || 'unknown error';
+        // Strip the query string immediately. Authorization codes are
+        // single-use, so a reload must not try to replay a spent one.
+        history.replaceState({}, '', getRedirectUri());
+
+        if (oauthError) {
           setAuthError(
-            type === 'popup_closed'
-              ? 'The Google sign-in window closed before finishing. If you did not close it yourself, your browser may have blocked the popup — allow popups for this site and try again.'
-              : `Google sign-in was not completed: ${type}${err?.message ? ` (${err.message})` : ''}`
+            oauthError === 'access_denied'
+              ? 'Google sign-in was cancelled or declined.'
+              : `Google sign-in failed: ${oauthError}`
           );
-        },
-        callback: async (response) => {
-          if (response.error) {
-            setAuthError(
-              `Google sign-in returned an error: ${response.error}${response.error_description ? ` (${response.error_description})` : ''}`
-            );
-            return;
+          setIsRefreshing(false);
+        } else if (!expectedState || returnedState !== expectedState) {
+          setAuthError(
+            'Sign-in could not be verified (state did not match). Please try signing in again.'
+          );
+          setIsRefreshing(false);
+        } else {
+          setIsRefreshing(true);
+          exchangeCodeForTokens(code)
+            .then(async (tokens) => {
+              setAccessToken(tokens.access_token);
+              if (tokens.refresh_token) {
+                localStorage.setItem(REFRESH_TOKEN_KEY, tokens.refresh_token);
+              }
+              scheduleRefresh(tokens.expires_in);
+              await fetchUserInfo(tokens.access_token);
+            })
+            .catch((err) => {
+              console.error('Auth code exchange failed:', err);
+              setAuthError(err.message);
+            })
+            .finally(() => setIsRefreshing(false));
+        }
+      } else if (localStorage.getItem(REFRESH_TOKEN_KEY)) {
+        setIsRefreshing(true);
+        refreshAccessToken().then((token) => {
+          if (token) {
+            fetchUserInfo(token);
           }
-
-          if (!response.code) {
-            setAuthError('Google sign-in did not return an authorization code.');
-            return;
-          }
-
-          try {
-            const tokens = await exchangeCodeForTokens(response.code);
-            setAccessToken(tokens.access_token);
-
-            if (tokens.refresh_token) {
-              localStorage.setItem(REFRESH_TOKEN_KEY, tokens.refresh_token);
-            }
-
-            scheduleRefresh(tokens.expires_in);
-            fetchUserInfo(tokens.access_token);
-          } catch (err) {
-            console.error('Auth code exchange failed:', err);
-            setAuthError(err.message);
-          }
-        },
-      });
-
-      setGisReady(true);
-    };
-
-    init();
+        });
+      }
+    }
 
     return () => {
-      cancelled = true;
+      if (refreshTimerRef.current) {
+        clearTimeout(refreshTimerRef.current);
+      }
     };
-  }, []);
+  }, [refreshAccessToken]);
 
+  // Full-page redirect to Google. No popup, so nothing for a popup blocker to
+  // block and no dependency on the Google JS library having loaded.
   const signIn = useCallback(() => {
     setAuthError(null);
 
-    if (!codeClientRef.current) {
-      setAuthError('Google sign-in is still loading — give it a second and try again.');
+    const state = newStateToken();
+    try {
+      localStorage.setItem(OAUTH_STATE_KEY, state);
+    } catch {
+      setAuthError('Sign-in needs browser storage, which appears to be blocked.');
       return;
     }
 
-    codeClientRef.current.requestCode();
+    const params = new URLSearchParams({
+      client_id: CONFIG.OAUTH_CLIENT_ID,
+      redirect_uri: getRedirectUri(),
+      response_type: 'code',
+      scope: CONFIG.SCOPES,
+      // Required to get a refresh token; 'consent' makes Google reissue one
+      // on every sign-in rather than only the very first authorization.
+      access_type: 'offline',
+      prompt: 'consent',
+      include_granted_scopes: 'true',
+      state,
+    });
+
+    window.location.assign(`${AUTH_ENDPOINT}?${params.toString()}`);
   }, []);
 
   const signOut = useCallback(async () => {
@@ -299,6 +313,7 @@ export function useGoogleAuth() {
     setAuthError(null);
     localStorage.removeItem(REFRESH_TOKEN_KEY);
     localStorage.removeItem(USER_STORAGE_KEY);
+    localStorage.removeItem(OAUTH_STATE_KEY);
     // Clean up old key if it exists
     localStorage.removeItem('vera-pwa-token');
   }, []);
@@ -311,7 +326,6 @@ export function useGoogleAuth() {
     accessToken,
     authError,
     clearAuthError,
-    gisReady,
     user,
     caretaker,
     signIn,
